@@ -1,8 +1,15 @@
 ﻿@page "/"
+@inject HttpClient Http
+@using System.Net.Http.Json
+@using TamboliyaLibrary.DAL
+
 
 <PageTitle>Index</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Hello, gamer!</h1>
+
+<input type="text" @bind-value="question" />
+<button type="button" class="btn btn-success" onclick="@(async () => await CreateNewGame())">Start new game</button>
 
 <div class="alert alert-warning" role="alert">
     Before authentication will function correctly, you must configure your provider details in <code>Program.cs</code>
@@ -11,3 +18,25 @@
 Welcome to your new app.
 
 <SurveyPrompt Title="How is Blazor working for you?" />
+
+@if(GameId > 0){
+    <LogOfGame GameId="GameId" />
+}
+
+
+@code {
+    public int? GameId { get; set; }
+    private string question;
+
+
+    public async Task CreateNewGame()
+    {
+        if (!String.IsNullOrEmpty(question))
+        {
+            GameId = (await Http.GetFromJsonAsync<OracleDTO>($"api/Game/new?question={question}"))!.GameId;
+        }
+    }
+
+
+
+}
