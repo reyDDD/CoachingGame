@@ -1,8 +1,9 @@
 ﻿@page "/"
-@inject HttpClient Http
 @using System.Net.Http.Json
 @using TamboliyaLibrary.DAL
+@inject IJSRuntime JSRuntime
 
+<div style="width: 990px; height:500px;background-color:blue;" id="baseImage"></div>
 
 <PageTitle>Index</PageTitle>
 
@@ -15,28 +16,54 @@
     Before authentication will function correctly, you must configure your provider details in <code>Program.cs</code>
 </div>
 
-Welcome to your new app.
-
-<SurveyPrompt Title="How is Blazor working for you?" />
-
-@if(GameId > 0){
+@if (GameId > 0)
+{
     <LogOfGame GameId="GameId" />
 }
+
+
+
 
 
 @code {
     public int? GameId { get; set; }
     private string question;
+    private string pathToImage = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
 
 
     public async Task CreateNewGame()
     {
         if (!String.IsNullOrEmpty(question))
         {
-            GameId = (await Http.GetFromJsonAsync<OracleDTO>($"api/Game/new?question={question}"))!.GameId;
+            var gameOracle = await Http.GetFromJsonAsync<OracleDTO>($"api/Game/new?question={question}");
+            GameId = gameOracle!.GameId;
+            pathToImage = gameOracle!.PathToImage;
+            if (pathToImage != null)
+            {
+                await MoveFigure(new GamePosition(100, 200, pathToImage));
+            }
         }
     }
 
-
-
+    public async Task MoveFigure(object newPosition)
+    {
+        await JSRuntime.InvokeVoidAsync("moveFigure", new
+        {
+            x = ((GamePosition)newPosition).x,
+            y = ((GamePosition)newPosition).y
+        });
+    }
 }
+

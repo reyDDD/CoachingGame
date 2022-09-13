@@ -13,5 +13,6 @@ namespace TamboliyaLibrary.DAL
 		public string ExitPath { get; init; } = null!;
 		public int StepOnPath { get; init; }
 		public RegionOnMap RegionOnMap { get; init; }
+		public string PathToImage { get; init; } = null!;
 	}
 }

@@ -21,6 +21,51 @@
     </div>
     <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
+    <script src="https://unpkg.com/konva@8/konva.min.js"></script>
+
+    <script>
+        var anim;
+        var imagePosition = {
+            x: 200,
+            y: 50
+        };
+
+        function initAnimation() {
+            var stage = new Konva.Stage({
+                container: "baseImage",
+                width: 990,
+                height: 500
+            });
+            var layer = new Konva.Layer();
+
+            var imageObj = new Image();
+            imageObj.src = 'images/marker.png'
+            var image = new Konva.Image({
+                x: imagePosition.x,
+                y: imagePosition.y,
+                image: imageObj,
+                width: 30,
+                height: 30
+            });
+            layer.add(image);
+            stage.add(layer);
+            anim = new Konva.Animation(function (frame) {
+                image.x(newPosition.x);
+                image.y(newPosition.y);
+            }, layer);
+        }
+
+        function moveFigure(newPosition) {
+            console.log('start move');
+            imagePosition.x = newPosition.x;
+            imagePosition.y = newPosition.y;
+            initAnimation();
+            anim.start();
+            console.log('end move');
+        }
+    </script>
+
+
 </body>
 
 </html>
