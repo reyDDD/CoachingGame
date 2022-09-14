@@ -14,5 +14,6 @@ namespace TamboliyaLibrary.DAL
 		public int StepOnPath { get; init; }
 		public RegionOnMap RegionOnMap { get; init; }
 		public string PathToImage { get; init; } = null!;
+		public Coordinates Coordinates { get; init; } = null!;
 	}
 }

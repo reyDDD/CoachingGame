@@ -10,5 +10,6 @@ namespace TamboliyaLibrary.DAL
 		public OracleDTO? Oracle { get; set; }
 		public List<ActualPositionOnMap> ActualPositionsForSelect { get; set; } = new();
 		public string PathToImage { get; init; } = null!;
+		public Coordinates Coordinates { get; init; } = null!;
 	}
 }
