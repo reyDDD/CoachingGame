@@ -1,23 +1,76 @@
 ﻿@page "/"
 @using System.Net.Http.Json
 @using TamboliyaLibrary.DAL
+@using TamboliyaLibrary.Models
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager;
 
-<div style="margin: auto; width: 990px; height:500px;background-image: url(@(NavManager.Uri + pathToImage));" id="baseImage"></div>
+<div style="margin: auto;width: 990px; height:500px;background-image: url(@(NavManager.Uri + pathToImage));" id="baseImage"></div>
 
 <PageTitle>Нова гра</PageTitle>
 
 
 <div class="alert alert-warning" role="alert">
-    <input type="text" @bind-value="question" />
-    <button type="button" class="btn btn-success" onclick="@(async () => await CreateNewGame())">Start new game</button>
+    @if (GameId == null)
+    {
+        <input type="text" @bind-value="question" />
+        <button type="button" class="btn btn-success" onclick="@(async () => await CreateNewGame())">Start new game</button>
+    }
+    else
+    {
+        if (RegionOnMap == RegionOnMap.LandOfClarity && ActualPositionsForSelect.Count() == 3)
+        {
+            Task.FromResult(MoveFigure(new GamePosition(790-14, 250-29, pathToImage)));
+            <select @onchange="GoToNewPosition2">
+                <option value="Select">Select...</option>
+                @foreach (var item in ActualPositionsForSelect)
+                {
+                    <option value="@item.PositionNumber">@((LandOfClarity)item.PositionNumber)</option>
+                }
+            </select>
+        }
+        else if (RegionOnMap == RegionOnMap.LandOfClarity && PositionNumber == 18)
+        {
+            <p>Вітаю. Гру закінчено!</p>
+        }
+        else if (RegionOnMap == RegionOnMap.LandOfClarity || RegionOnMap == RegionOnMap.Embodiment ||
+        PositionNumber == 12)
+        {
+            <button type="button" class="btn btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-success" onclick="@(async () => await RollDice())">Roll the dice</button>
+            <button type="button" class="btn btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
+        }
 
+    }
 </div>
 
 @if (GameId > 0)
 {
-    <LogOfGame GameId="GameId" />
+    @if (logLines == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Log of game</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in logLines.Messages)
+                {
+                    <tr>
+                        <td>@line</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }
 
 
@@ -28,41 +81,126 @@
     public int? GameId { get; set; }
     private string question;
     private string pathToImage = "images/Oracul.jpg";
+    private GameLogDTO? logLines;
+    private RegionOnMap RegionOnMap { get; set; }
+    private int? PositionNumber { get; set; }
+    private List<ActualPositionOnMap> ActualPositionsForSelect { get; set; } = new();
+    public int SelectedIdForNextStepToEmbodiment { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-
         await base.OnInitializedAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-
-        await base.OnAfterRenderAsync(firstRender);
-    }
 
 
-    public async Task CreateNewGame()
+    private async Task CreateNewGame()
     {
         if (!String.IsNullOrEmpty(question))
         {
             var gameOracle = await Http.GetFromJsonAsync<OracleDTO>($"api/Game/new?question={question}");
             GameId = gameOracle!.GameId;
             pathToImage = gameOracle!.PathToImage;
+            RegionOnMap = gameOracle!.RegionOnMap;
+            PositionNumber = gameOracle!.StepOnPath;
             if (pathToImage != null)
             {
-                await MoveFigure(new GamePosition(gameOracle.Coordinates.x - 15, gameOracle.Coordinates.y - 29, pathToImage));
+                var newGameposition = new GamePosition(gameOracle.Coordinates.x, gameOracle.Coordinates.y, pathToImage);
+                await MoveFigure(newGameposition);
+                await GetLog();
             }
         }
     }
 
-    public async Task MoveFigure(object newPosition)
+
+    private async Task RollDice()
+    {
+        var model = new MoveModel()
+            {
+                GameId = GameId!.Value,
+                ActionType = ActionType.RandomAction
+            };
+        var response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<GameDTO>();
+
+            RegionOnMap = result!.ActualPosition!.RegionOnMap;
+            PositionNumber = result!.ActualPosition!.PositionNumber;
+            ActualPositionsForSelect = result!.ActualPositionsForSelect;
+            pathToImage = result!.PathToImage;
+            await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
+            await GetLog();
+        }
+    }
+
+    private async Task GoToNewPosition2(ChangeEventArgs e)
+    {
+        SelectedIdForNextStepToEmbodiment = Convert.ToInt32(e.Value);
+        MoveModel model = new MoveModel()
+            {
+                GameId = GameId!.Value,
+                ActionType = ActionType.GoToSelectPosition,
+                RegionOnMap = RegionOnMap.LandOfClarity,
+                PositionNumber = SelectedIdForNextStepToEmbodiment
+            };
+        SelectedIdForNextStepToEmbodiment = 0;
+        ActualPositionsForSelect = new();
+
+        HttpResponseMessage response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<GameDTO>();
+
+            RegionOnMap = result!.ActualPosition!.RegionOnMap;
+            PositionNumber = result!.ActualPosition!.PositionNumber;
+            ActualPositionsForSelect = result!.ActualPositionsForSelect;
+            pathToImage = result!.PathToImage;
+            await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
+            await GetLog();
+        }
+    }
+
+    private async Task GoToNewPosition()
+    {
+        MoveModel model = new MoveModel()
+            {
+                GameId = GameId!.Value,
+                ActionType = ActionType.NewStep
+            };
+
+        HttpResponseMessage response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<GameDTO>();
+
+            RegionOnMap = result!.ActualPosition!.RegionOnMap;
+            PositionNumber = result!.ActualPosition!.PositionNumber;
+            ActualPositionsForSelect = result!.ActualPositionsForSelect;
+            pathToImage = result!.PathToImage;
+            await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
+            await GetLog();
+        }
+    }
+
+
+    private async Task MoveFigure(object newPosition)
     {
         await JSRuntime.InvokeVoidAsync("moveFigure", new
         {
             x = ((GamePosition)newPosition).x,
             y = ((GamePosition)newPosition).y
         });
+    }
+
+
+    private async Task GetLog()
+    {
+        if (GameId.HasValue && GameId > 0)
+        {
+            logLines = await Http.GetFromJsonAsync<GameLogDTO>($"api/Game/log/{GameId}") ?? new();
+        }
     }
 }
 
