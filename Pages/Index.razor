@@ -10,38 +10,42 @@
 <PageTitle>Нова гра</PageTitle>
 
 
-<div class="alert alert-warning" role="alert">
+<div class="">
+    <p>@messageForEndGame</p>
     @if (GameId == null)
     {
         <input type="text" @bind-value="question" />
-        <button type="button" class="btn btn-success" onclick="@(async () => await CreateNewGame())">Start new game</button>
+        <button type="button" class="btn btn-sm btn-success" onclick="@(async () => await CreateNewGame())">Start new game</button>
     }
     else
     {
         if (RegionOnMap == RegionOnMap.LandOfClarity && ActualPositionsForSelect.Count() == 3)
         {
-            Task.FromResult(MoveFigure(new GamePosition(790-14, 250-29, pathToImage)));
-            <select @onchange="GoToNewPosition2">
+            Task.FromResult(MoveFigure(new GamePosition(790 - 14, 250 - 29, pathToImage)));
+            <select @onchange="GoToNewPositionWhatImDoingHere">
                 <option value="Select">Select...</option>
                 @foreach (var item in ActualPositionsForSelect)
                 {
                     <option value="@item.PositionNumber">@((LandOfClarity)item.PositionNumber)</option>
                 }
             </select>
+            <button type="button" class="btn btn-sm btn-info" onclick="@(async () => await EndTheGame())">End The Game</button>
         }
         else if (RegionOnMap == RegionOnMap.LandOfClarity && PositionNumber == 18)
         {
-            <p>Вітаю. Гру закінчено!</p>
+            messageForEndGame = "Вітаю. Гру закінчено!";
         }
-        else if (RegionOnMap == RegionOnMap.LandOfClarity || RegionOnMap == RegionOnMap.Embodiment ||
-        PositionNumber == 12)
+        else if ((RegionOnMap == RegionOnMap.LandOfClarity || RegionOnMap == RegionOnMap.Embodiment ||
+        PositionNumber == 12) && !gameFinished)
         {
-            <button type="button" class="btn btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
+            <button type="button" class="btn btn-sm btn-info" onclick="@(async () => await EndTheGame())">End The Game</button>
         }
-        else
+        else if (!gameFinished)
         {
-            <button type="button" class="btn btn-success" onclick="@(async () => await RollDice())">Roll the dice</button>
-            <button type="button" class="btn btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
+            <button type="button" class="btn btn-sm btn-success" onclick="@(async () => await RollDice())">Roll the dice</button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
+            <button type="button" class="btn btn-sm btn-info" onclick="@(async () => await EndTheGame())">End The Game</button>
         }
 
     }
@@ -56,11 +60,6 @@
     else
     {
         <table class="table">
-            <thead>
-                <tr>
-                    <th>Log of game</th>
-                </tr>
-            </thead>
             <tbody>
                 @foreach (var line in logLines.Messages)
                 {
@@ -79,6 +78,8 @@
 
 @code {
     public int? GameId { get; set; }
+    private string messageForEndGame = String.Empty;
+    public bool gameFinished = false;
     private string question;
     private string pathToImage = "images/Oracul.jpg";
     private GameLogDTO? logLines;
@@ -130,12 +131,21 @@
             PositionNumber = result!.ActualPosition!.PositionNumber;
             ActualPositionsForSelect = result!.ActualPositionsForSelect;
             pathToImage = result!.PathToImage;
+            if (result!.IsFinished || (RegionOnMap == RegionOnMap.LandOfClarity && PositionNumber == 18))
+            {
+                gameFinished = true;
+                messageForEndGame = "Гру закінчено!";
+            }
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
         }
+        else
+        {
+            messageForEndGame = "Помилка при виконанні команди";
+        }
     }
 
-    private async Task GoToNewPosition2(ChangeEventArgs e)
+    private async Task GoToNewPositionWhatImDoingHere(ChangeEventArgs e)
     {
         SelectedIdForNextStepToEmbodiment = Convert.ToInt32(e.Value);
         MoveModel model = new MoveModel()
@@ -157,6 +167,11 @@
             PositionNumber = result!.ActualPosition!.PositionNumber;
             ActualPositionsForSelect = result!.ActualPositionsForSelect;
             pathToImage = result!.PathToImage;
+            if (result!.IsFinished)
+            {
+                gameFinished = true;
+                messageForEndGame = "Гру закінчено!";
+            }
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
         }
@@ -179,8 +194,17 @@
             PositionNumber = result!.ActualPosition!.PositionNumber;
             ActualPositionsForSelect = result!.ActualPositionsForSelect;
             pathToImage = result!.PathToImage;
+            if (result!.IsFinished || (RegionOnMap == RegionOnMap.LandOfClarity && PositionNumber == 18))
+            {
+                gameFinished = true;
+                messageForEndGame = "Гру закінчено!";
+            }
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
+        }
+        else
+        {
+            messageForEndGame = "Помилка при виконанні команди";
         }
     }
 
@@ -202,5 +226,18 @@
             logLines = await Http.GetFromJsonAsync<GameLogDTO>($"api/Game/log/{GameId}") ?? new();
         }
     }
+
+    private async Task EndTheGame()
+    {
+        var response = await Http.PostAsJsonAsync<int>($"api/Game/finish", GameId!.Value);
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<string>();
+            messageForEndGame = result!;
+            gameFinished = true;
+        }
+        await GetLog();
+    }
+
 }
 
