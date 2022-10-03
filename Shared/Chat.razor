@@ -1,0 +1,77 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<PageTitle>Chat component</PageTitle>
+
+<div class="form-group">
+    <label>
+        Message:
+        <input @bind="messageInput" type="text" />
+    </label>
+</div>
+<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
+
+<hr>
+
+<ul id="messagesList">
+    @foreach (var message in messages)
+    {
+        <li>@message</li>
+    }
+</ul>
+
+@code {
+    private HubConnection? hubConnection;
+    private List<string> messages = new List<string>();
+    private string? messageInput;
+
+    [Parameter]
+    public int RoomName { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl("https://localhost:7212/chathub")
+            .Build();
+
+        hubConnection.On<int, string>("ReceiveMessage", (RoomName, message) =>
+        {
+            var encodedMsg = $"{RoomName}: {message}";
+            messages.Add(encodedMsg);
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+        await ConnectToRoom();
+    }
+
+    private async Task Send()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendMessageToGroup", RoomName, messageInput);
+        }
+    }
+
+    private async Task ConnectToRoom()
+    {
+        if (hubConnection is not null && RoomName != 0)
+        {
+            await hubConnection.SendAsync("JoinRoom", RoomName);
+        }
+    }
+
+    public bool IsConnected =>
+        hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("LeaveRoom", RoomName);
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
