@@ -4,8 +4,30 @@
 
 <h1>Games history</h1>
 
- 
+@if (userGames is null)
+{
+    <p>Loading...</p>
+}
+else if (userGames.Count() > 0)
+{
+    <table>
+        @foreach (var game in userGames)
+        {
+            <tr>
+                <td>@game.GameId</td>
+                <td>@game.Created</td>
+                <td>@(game.IsFinished == true ? "game is over" : "game is active")</td>
+                <td></td>
+            </tr>
+        }
+    </table>
+}
 
 @code {
- 
+    private IEnumerable<GameDTO>? userGames;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userGames = await Http.GetFromJsonAsync<IEnumerable<GameDTO>>($"api/Game/gamesInfo") ?? new List<GameDTO>();
+    }
 }

@@ -60,7 +60,7 @@
     {
         <div style="display:flex;">
             <div style="width:50%; max-height:600px; overflow-y:scroll;">
-                <Chat RoomName="@GameId.Value"></Chat>
+                <Chat RoomName="@GameId.Value" @ref="chat"></Chat>
             </div>
             <div style="width:50%; display:flex; max-height:600px; overflow-y:scroll;">
                 <table class="table">
@@ -86,13 +86,14 @@
     public int? GameId { get; set; }
     private string messageForEndGame = String.Empty;
     public bool gameFinished = false;
-    private string question;
+    private string? question = null;
     private string pathToImage = "images/Oracul.jpg";
     private GameLogDTO? logLines;
     private RegionOnMap RegionOnMap { get; set; }
     private int? PositionNumber { get; set; }
     private List<ActualPositionOnMap> ActualPositionsForSelect { get; set; } = new();
     public int SelectedIdForNextStepToEmbodiment { get; set; }
+    private Chat chat = null!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -238,6 +239,7 @@
         var response = await Http.PostAsJsonAsync<int>($"api/Game/finish", GameId!.Value);
         if (response.IsSuccessStatusCode)
         {
+            await chat.SaveChatLog();
             var result = await response.Content.ReadFromJsonAsync<string>();
             messageForEndGame = result!;
             gameFinished = true;

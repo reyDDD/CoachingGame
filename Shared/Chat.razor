@@ -1,6 +1,10 @@
 ﻿@using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager NavigationManager
 @implements IAsyncDisposable
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using System.Net.Http.Json
+
+
 
 <PageTitle>Chat component</PageTitle>
 
@@ -23,8 +27,10 @@
 
 @code {
     private HubConnection? hubConnection;
-    private List<string> messages = new List<string>();
+    private HashSet<string> messages = new HashSet<string>();
     private string? messageInput;
+    private string? userName;
+
 
     [Parameter]
     public int RoomName { get; set; }
@@ -32,6 +38,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authstate = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userName = authstate.User?.Identity?.Name;
+
+
         hubConnection = new HubConnectionBuilder()
             .WithUrl("https://localhost:7212/chathub")
             .Build();
@@ -52,6 +62,7 @@
         if (hubConnection is not null)
         {
             await hubConnection.SendAsync("SendMessageToGroup", RoomName, messageInput);
+            messageInput = String.Empty;
         }
     }
 
@@ -73,5 +84,18 @@
             await hubConnection.SendAsync("LeaveRoom", RoomName);
             await hubConnection.DisposeAsync();
         }
+    }
+
+
+
+    public async Task SaveChatLog()
+    {
+        LogsDTOModel model = new()
+            {
+                GameId = RoomName,
+                UserId = userName != null ? Guid.Parse(userName) : default(Guid),
+                Messages = messages
+            };
+        await Http.PostAsJsonAsync<LogsDTOModel>($"api/GameLog/save", model);
     }
 }
