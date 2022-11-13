@@ -1,23 +1,39 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-
+@using System.Net
 @inject NavigationManager Navigation
-@inject SignOutSessionStateManager SignOutManager
+@inject IAccountService AccountService
 
-<AuthorizeView>
-    <Authorized>
-        Hello, @context.User.Identity?.Name!
-        <button class="nav-link btn btn-link" @onclick="BeginSignOut">Log out</button>
-    </Authorized>
-    <NotAuthorized>
-        <a href="authentication/login">Log in</a>
-    </NotAuthorized>
-</AuthorizeView>
+
+@if (LoggedIn)
+{
+    <span>Hello, @userName!</span>
+  <button class="nav-link btn btn-link" @onclick="BeginSignOut">Log out</button>
+} else
+{
+
+    <a href="account/login?returnUrl=@ReturnUrl">Log in</a>
+}
+ 
 
 @code{
-    private async Task BeginSignOut(MouseEventArgs args)
+    public string ReturnUrl { get; set; } = null!;
+    private string? userName = null!;
+
+    public bool LoggedIn
     {
-        await SignOutManager.SetSignOutState();
-        Navigation.NavigateTo("authentication/logout");
+        get { return AccountService.User != null; }
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        userName = AccountService.User?.Email;
+
+        ReturnUrl = WebUtility.UrlEncode(new Uri(Navigation.Uri).PathAndQuery);
+        await base.OnInitializedAsync();
+    }
+    private async Task BeginSignOut()
+    {
+        await AccountService.Logout();
     }
 }
