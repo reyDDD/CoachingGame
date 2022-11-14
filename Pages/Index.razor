@@ -68,7 +68,7 @@
             <div style="width:50%; display:flex; max-height:600px; overflow-y:scroll;">
                 <table class="table">
                     <tbody>
-                        @foreach (var line in logLines.Messages)
+                        @foreach (var line in logLines?.Messages)
                         {
                             <tr>
                                 <td>@line</td>
@@ -96,7 +96,7 @@
     private int? PositionNumber { get; set; }
     private List<ActualPositionOnMap> ActualPositionsForSelect { get; set; } = new();
     public int SelectedIdForNextStepToEmbodiment { get; set; }
-    private Chat chat = null!;
+    private Chat chat = new();
 
     protected override async Task OnInitializedAsync()
     {
