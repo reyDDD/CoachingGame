@@ -1,10 +1,8 @@
-﻿@using Microsoft.AspNetCore.SignalR.Client
+﻿@implements IAsyncDisposable
 @inject NavigationManager NavigationManager
-@inject IAccountService AccountService
-@implements IAsyncDisposable
-@using System.Net.Http.Json
 @attribute [Authorize]
-
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Net.Http.Json
 
 <PageTitle>Chat component</PageTitle>
 
@@ -30,7 +28,7 @@
     private HashSet<string> messages = new HashSet<string>();
     private string? messageInput;
     private string? userName;
-    private Guid? userId = null;
+    private int userId;
 
     [Parameter]
     public int RoomName { get; set; }
@@ -38,8 +36,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        userName = AccountService.User!.Email;
-        userId = AccountService.User!.Id;
+        userName = null;
+        userId = 0;
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl("https://localhost:7212/chathub")
@@ -92,7 +90,7 @@
         LogsDTOModel model = new()
             {
                 GameId = RoomName,
-                UserId = userId ?? default(Guid),
+                UserId = userId,
                 Messages = messages
             };
         await Http.PostAsJsonAsync<LogsDTOModel>($"api/GameLog/save", model);

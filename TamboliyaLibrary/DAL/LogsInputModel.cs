@@ -7,7 +7,7 @@ namespace TamboliyaLibrary.DAL
     {
         [Required]
         public int GameId { get; set; }
-        public Guid? UserId { get; set; }
+        public int UserId { get; set; }
         public HashSet<string> Messages { get; set; } = null!;
     }
 }
