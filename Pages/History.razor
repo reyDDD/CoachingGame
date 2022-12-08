@@ -1,4 +1,6 @@
 ﻿@page "/history"
+@inject IHttpClientFactory ClientFactory
+@attribute [Authorize]
 
 <PageTitle>Games history</PageTitle>
 
@@ -28,6 +30,16 @@ else if (userGames.Count() > 0)
 
     protected override async Task OnInitializedAsync()
     {
-        userGames = await Http.GetFromJsonAsync<IEnumerable<GameDTO>>($"api/Game/gamesInfo") ?? new List<GameDTO>();
+        try
+        {
+            var client = ClientFactory.CreateClient("Tamboliya.ServerAPI");
+            userGames = await client.GetFromJsonAsync<IEnumerable<GameDTO>>($"api/Game/gamesInfo");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            userGames = new List<GameDTO>();
+        }
+
     }
 }

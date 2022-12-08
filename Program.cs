@@ -14,8 +14,7 @@ builder.Services.AddHttpClient("Tamboliya.ServerAPI", client => client.BaseAddre
          var handler = sp.GetService<AuthorizationMessageHandler>()!
              .ConfigureHandler(
                  authorizedUrls: new[] { "https://localhost:7212" },
-                 scopes: new[] { "tamboliyaApi" });
-
+				 scopes: new[] { "tamboliya-Api" });
          return handler;
      });
  

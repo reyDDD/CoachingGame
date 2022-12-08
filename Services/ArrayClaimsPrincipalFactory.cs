@@ -12,34 +12,38 @@ namespace Tamboliya.Services
         { }
 
 
-        // when a user belongs to multiple roles, IS4 returns a single claim with a serialised array of values
-        // this class improves the original factory by deserializing the claims in the correct way
         public async override ValueTask<ClaimsPrincipal> CreateUserAsync(TAccount account, RemoteAuthenticationUserOptions options)
         {
-            var user = await base.CreateUserAsync(account, options);
+			var user = await base.CreateUserAsync(account, options);
 
-            var claimsIdentity = (ClaimsIdentity)user.Identity;
+			if (!user.Identity.IsAuthenticated)
+			{
+				return user;
+			}
 
-            if (account != null)
-            {
-                foreach (var kvp in account.AdditionalProperties)
-                {
-                    var name = kvp.Key;
-                    var value = kvp.Value;
-                    if (value != null &&
-                        (value is JsonElement element && element.ValueKind == JsonValueKind.Array))
-                    {
-                        claimsIdentity.RemoveClaim(claimsIdentity.FindFirst(kvp.Key));
+			var identity = (ClaimsIdentity)user.Identity;
+			var roleClaims = identity.FindAll(identity.RoleClaimType);
 
-                        var claims = element.EnumerateArray()
-                            .Select(x => new Claim(kvp.Key, x.ToString()));
+			if (roleClaims == null || !roleClaims.Any())
+			{
+				return user;
+			}
 
-                        claimsIdentity.AddClaims(claims);
-                    }
-                }
-            }
+			var rolesElem = account.AdditionalProperties[identity.RoleClaimType];
 
-            return user;
-        }
-    }
+			if (rolesElem is JsonElement roles)
+			{
+				if (roles.ValueKind == JsonValueKind.Array)
+				{
+					identity.RemoveClaim(identity.FindFirst(options.RoleClaim));
+					foreach (var role in roles.EnumerateArray())
+					{
+						identity.AddClaim(new Claim(options.RoleClaim, role.GetString()));
+					}
+				}
+			}
+
+			return user;
+		}
+	}
 }
