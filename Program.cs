@@ -31,6 +31,8 @@ builder.Services.AddOidcAuthentication(options =>
 })
     .AddAccountClaimsPrincipalFactory<ArrayClaimsPrincipalFactory<RemoteUserAccount>>();
 
+builder.Services.AddSingleton<ITokenService, TokenService>();
+
 var host = builder.Build();
 
 await host.RunAsync();

@@ -1,6 +1,11 @@
 ﻿@page "/history"
 @inject IHttpClientFactory ClientFactory
-@attribute [Authorize]
+@*@attribute [Authorize]*@
+@inject ITokenService _tokenService;
+@using Newtonsoft.Json;
+@using IdentityModel;
+@using IdentityModel.Client;
+
 
 <PageTitle>Games history</PageTitle>
 
@@ -32,8 +37,23 @@ else if (userGames.Count() > 0)
     {
         try
         {
-            var client = ClientFactory.CreateClient("Tamboliya.ServerAPI");
-            userGames = await client.GetFromJsonAsync<IEnumerable<GameDTO>>($"api/Game/gamesInfo");
+            var data = new List<GameDTO>();
+            var token = await _tokenService.GetToken("myApi.read");
+            using (var client = new HttpClient())
+            {
+                client.SetBearerToken(token.AccessToken);
+                var result = await client.GetAsync("https://localhost:7212/api/game/gamesInfo");
+                if (result.IsSuccessStatusCode)
+                {
+                    var model = await result.Content.ReadAsStringAsync();
+                    data = JsonConvert.DeserializeObject<List<GameDTO>>(model);
+                    userGames = data;
+                }
+                else
+                {
+                    throw new Exception("Failed to get Data from API");
+                }
+            }
         }
         catch (Exception ex)
         {
