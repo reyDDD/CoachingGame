@@ -1,13 +1,12 @@
 ﻿@page "/history"
-@inject IHttpClientFactory ClientFactory
-@*@attribute [Authorize]*@
-@inject ITokenService _tokenService;
+@inject IAuthService AuthService
+@attribute [Authorize(Roles = "User")]
 @using Newtonsoft.Json;
 @using IdentityModel;
 @using IdentityModel.Client;
+@inject HttpClient Http
 
-
-<PageTitle>Games history</PageTitle>
+<PageTitle>Games history for </PageTitle>
 
 <h1>Games history</h1>
 
@@ -30,30 +29,17 @@ else if (userGames.Count() > 0)
     </table>
 }
 
-@code {
+@code
+{
     private IEnumerable<GameDTO>? userGames;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var data = new List<GameDTO>();
-            var token = await _tokenService.GetToken("myApi.read");
-            using (var client = new HttpClient())
-            {
-                client.SetBearerToken(token.AccessToken);
-                var result = await client.GetAsync("https://localhost:7212/api/game/gamesInfo");
-                if (result.IsSuccessStatusCode)
-                {
-                    var model = await result.Content.ReadAsStringAsync();
-                    data = JsonConvert.DeserializeObject<List<GameDTO>>(model);
-                    userGames = data;
-                }
-                else
-                {
-                    throw new Exception("Failed to get Data from API");
-                }
-            }
+            var token = await AuthService.GetHttpClientToken();
+            Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
+            userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/gamesInfo");
         }
         catch (Exception ex)
         {

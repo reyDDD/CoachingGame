@@ -5,7 +5,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager;
 @inject IHttpClientFactory ClientFactory
-
+@inject IAuthService AuthService
 
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
@@ -99,11 +99,11 @@
     private List<ActualPositionOnMap> ActualPositionsForSelect { get; set; } = new();
     public int SelectedIdForNextStepToEmbodiment { get; set; }
     private Chat? chat = new();
-    private readonly HttpClient _httpClient = null!;
 
     protected override async Task OnInitializedAsync()
     {
-        var _httpClient = ClientFactory.CreateClient("Tamboliya.ServerAPI");
+        var token = await AuthService.GetHttpClientToken();
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
         await base.OnInitializedAsync();
     }
 
@@ -116,7 +116,7 @@
             OracleDTO? gameOracle = null;
             try
             {
-                gameOracle = await _httpClient.GetFromJsonAsync<OracleDTO>($"api/Game/new?question={question}");
+                gameOracle = await Http.GetFromJsonAsync<OracleDTO>($"api/Game/new?question={question}");
 
             }
             catch (Exception ex)
@@ -145,7 +145,7 @@
                 GameId = GameId!.Value,
                 ActionType = ActionType.RandomAction
             };
-        var response = await _httpClient.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
+        var response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
 
         if (response.IsSuccessStatusCode)
         {
@@ -182,7 +182,7 @@
         SelectedIdForNextStepToEmbodiment = 0;
         ActualPositionsForSelect = new();
 
-        HttpResponseMessage response = await _httpClient.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
+        HttpResponseMessage response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
         if (response.IsSuccessStatusCode)
         {
             var result = await response.Content.ReadFromJsonAsync<GameDTO>();
@@ -209,7 +209,7 @@
                 ActionType = ActionType.NewStep
             };
 
-        HttpResponseMessage response = await _httpClient.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
+        HttpResponseMessage response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
         if (response.IsSuccessStatusCode)
         {
             var result = await response.Content.ReadFromJsonAsync<GameDTO>();
@@ -247,13 +247,13 @@
     {
         if (GameId.HasValue && GameId > 0)
         {
-            logLines = await _httpClient.GetFromJsonAsync<GameLogDTO>($"api/Game/log/{GameId}") ?? new();
+            logLines = await Http.GetFromJsonAsync<GameLogDTO>($"api/Game/log/{GameId}") ?? new();
         }
     }
 
     private async Task EndTheGame()
     {
-        var response = await _httpClient.PostAsJsonAsync<int>($"api/Game/finish", GameId!.Value);
+        var response = await Http.PostAsJsonAsync<int>($"api/Game/finish", GameId!.Value);
         if (response.IsSuccessStatusCode)
         {
             await chat!.SaveChatLog();
