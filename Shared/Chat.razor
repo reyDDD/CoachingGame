@@ -1,8 +1,9 @@
 ﻿@implements IAsyncDisposable
 @inject NavigationManager NavigationManager
-@attribute [Authorize]
+@attribute [Authorize(Roles ="User")]
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Net.Http.Json
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Chat component</PageTitle>
 
@@ -27,7 +28,7 @@
     private HubConnection? hubConnection;
     private HashSet<string> messages = new HashSet<string>();
     private string? messageInput;
-    private string? userName;
+    private string? userMail;
     private int userId;
 
     [Parameter]
@@ -36,7 +37,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        userName = null;
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userMail = state.User.Identity?.Name;
         userId = 0;
 
         hubConnection = new HubConnectionBuilder()
@@ -45,7 +47,7 @@
 
         hubConnection.On<int, string>("ReceiveMessage", (RoomName, message) =>
         {
-            var encodedMsg = $"{RoomName}: {message}";
+            var encodedMsg = $"{message} to room #{RoomName}";
             messages.Add(encodedMsg);
             StateHasChanged();
         });
@@ -58,7 +60,7 @@
     {
         if (hubConnection is not null)
         {
-            await hubConnection.SendAsync("SendMessageToGroup", RoomName, messageInput);
+            await hubConnection.SendAsync("SendMessageToGroup", RoomName, messageInput, userMail);
             messageInput = String.Empty;
         }
     }
@@ -67,7 +69,7 @@
     {
         if (hubConnection is not null && RoomName != 0)
         {
-            await hubConnection.SendAsync("JoinRoom", RoomName);
+           await hubConnection.SendAsync("JoinRoom", RoomName, userMail);
         }
     }
 
@@ -78,7 +80,7 @@
     {
         if (hubConnection is not null)
         {
-            await hubConnection.SendAsync("LeaveRoom", RoomName);
+            await hubConnection.SendAsync("LeaveRoom", RoomName, userMail);
             await hubConnection.DisposeAsync();
         }
     }

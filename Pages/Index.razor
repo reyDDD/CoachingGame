@@ -8,7 +8,7 @@
 @inject IAuthService AuthService
 
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
+@attribute [Authorize(Roles ="User")]
 
 <div style="margin: auto;width: 990px; height:500px;background-image: url(@(pathToImage));" id="baseImage"></div>
 
