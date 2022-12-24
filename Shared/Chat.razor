@@ -49,6 +49,7 @@
         {
             var encodedMsg = $"{message} to room #{RoomName}";
             messages.Add(encodedMsg);
+            AddNewMessageToChatLog(encodedMsg).Wait();
             StateHasChanged();
         });
 
@@ -87,14 +88,24 @@
 
 
 
-    public async Task SaveChatLog()
+    //public async Task SaveBaseChatLog()
+    //{
+    //    LogsDTOModel model = new()
+    //        {
+    //            GameId = RoomName,
+    //            UserId = userId
+    //        };
+    //    await Http.PostAsJsonAsync<LogsDTOModel>($"api/GameLog/save", model);
+    //}
+
+    public async Task AddNewMessageToChatLog(string message)
     {
-        LogsDTOModel model = new()
+        LogLineDTOModel model = new()
             {
                 GameId = RoomName,
                 UserId = userId,
-                Messages = messages
+                Message = message
             };
-        await Http.PostAsJsonAsync<LogsDTOModel>($"api/GameLog/save", model);
+        await Http.PostAsJsonAsync<string>($"api/GameLog/addMessageToLog", message);
     }
 }

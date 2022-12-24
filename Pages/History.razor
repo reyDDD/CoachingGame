@@ -32,7 +32,7 @@ else if (userGames.Count() > 0)
                 <td>@game.GameId</td>
                 <td>@game.Created</td>
                 <td>@(game.IsFinished == true ? "game is over" : "game is active")</td>
-                <td></td>
+                    <td><a href="/newGame/@game.GameId">Continue game</a></td>
             </tr>
         }
         </tbody>
