@@ -2,10 +2,11 @@
 
 namespace TamboliyaLibrary.DAL
 {
-    public class LogLineDTOModel
+    public class GameUserDTO
     {
         [Required]
         public int GameId { get; set; }
-        public string Message { get; set; } = null!;
+        [Required]
+        public Guid UserId { get; set; }
     }
 }

@@ -1,9 +1,11 @@
 ﻿@implements IAsyncDisposable
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
-@attribute [Authorize(Roles ="User")]
+@inject IAuthService AuthService
+@attribute [Authorize(Roles = "User")]
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Net.Http.Json
-@inject AuthenticationStateProvider AuthenticationStateProvider
+
 
 <PageTitle>Chat component</PageTitle>
 
@@ -29,17 +31,23 @@
     private HashSet<string> messages = new HashSet<string>();
     private string? messageInput;
     private string? userMail;
-    private int userId;
-
+    private string? token = null;
     [Parameter]
     public int RoomName { get; set; }
 
 
     protected override async Task OnInitializedAsync()
     {
+        token = await AuthService.GetHttpClientToken();
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
+        var log = await Http.GetFromJsonAsync<LogsDTOModel>($"api/GameLog/info?GameId={RoomName}");
+        if (log?.Messages.Count() > 0)
+        {
+            messages = log!.Messages;
+        }
+
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         userMail = state.User.Identity?.Name;
-        userId = 0;
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl("https://localhost:7212/chathub")
@@ -47,13 +55,13 @@
 
         hubConnection.On<int, string>("ReceiveMessage", (RoomName, message) =>
         {
-            var encodedMsg = $"{message} to room #{RoomName}";
-            messages.Add(encodedMsg);
-            AddNewMessageToChatLog(encodedMsg).Wait();
+            OnMessageFromServer(RoomName, message);
             StateHasChanged();
         });
 
+
         await hubConnection.StartAsync();
+        StateHasChanged();
         await ConnectToRoom();
     }
 
@@ -70,7 +78,7 @@
     {
         if (hubConnection is not null && RoomName != 0)
         {
-           await hubConnection.SendAsync("JoinRoom", RoomName, userMail);
+            await hubConnection.SendAsync("JoinRoom", RoomName, userMail);
         }
     }
 
@@ -88,24 +96,26 @@
 
 
 
-    //public async Task SaveBaseChatLog()
-    //{
-    //    LogsDTOModel model = new()
-    //        {
-    //            GameId = RoomName,
-    //            UserId = userId
-    //        };
-    //    await Http.PostAsJsonAsync<LogsDTOModel>($"api/GameLog/save", model);
-    //}
-
     public async Task AddNewMessageToChatLog(string message)
     {
         LogLineDTOModel model = new()
             {
                 GameId = RoomName,
-                UserId = userId,
                 Message = message
             };
-        await Http.PostAsJsonAsync<string>($"api/GameLog/addMessageToLog", message);
+        await Http.PostAsJsonAsync<LogLineDTOModel>($"api/GameLog/addMessageToLog", model);
+
+        messages = (await Http.GetFromJsonAsync<LogsDTOModel>($"api/GameLog/info?GameId={RoomName}"))!.Messages;
+    }
+
+    private void OnMessageFromServer(int roomName, string message)
+    {
+        Task.Run(async () =>
+        {
+            var encodedMsg = $"{message} to room #{RoomName}";
+            messages.Add(encodedMsg);
+            await AddNewMessageToChatLog(encodedMsg);
+            StateHasChanged();
+        });
     }
 }
