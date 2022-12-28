@@ -16,15 +16,13 @@
 <PageTitle>Нова гра</PageTitle>
 
 <div class="">
-    <p>@messageForEndGame</p>
-    @if (GameId == null)
+    @if (GameId > 0)
     {
-        <input type="text" @bind-value="question" />
-        <button type="button" class="btn btn-sm btn-success" onclick="@(async () => await CreateNewGame())">Start new game</button>
-    }
-    else
-    {
-        if (RegionOnMap == RegionOnMap.LandOfClarity && ActualPositionsForSelect.Count() == 3)
+        if (gameFinished)
+        {
+            ChangeGameOutMessage("Гру закінчено!");
+        }
+        else if (RegionOnMap == RegionOnMap.LandOfClarity && ActualPositionsForSelect.Count() == 3)
         {
             Task.FromResult(MoveFigure(new GamePosition(790 - 14, 250 - 29, pathToImage)));
             <select @onchange="GoToNewPositionWhatImDoingHere">
@@ -38,10 +36,15 @@
         }
         else if (RegionOnMap == RegionOnMap.LandOfClarity && PositionNumber == 18)
         {
-            messageForEndGame = "Вітаю. Гру закінчено!";
+            ChangeGameOutMessage("Вітаю. Гру закінчено!");
         }
         else if ((RegionOnMap == RegionOnMap.LandOfClarity || RegionOnMap == RegionOnMap.Embodiment ||
         PositionNumber == 12) && !gameFinished)
+        {
+            <button type="button" class="btn btn-sm btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
+            <button type="button" class="btn btn-sm btn-info" onclick="@(async () => await EndTheGame())">End The Game</button>
+        }
+        else if (RegionOnMap == RegionOnMap.LandOfClarity)
         {
             <button type="button" class="btn btn-sm btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
             <button type="button" class="btn btn-sm btn-info" onclick="@(async () => await EndTheGame())">End The Game</button>
@@ -52,7 +55,12 @@
             <button type="button" class="btn btn-sm btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
             <button type="button" class="btn btn-sm btn-info" onclick="@(async () => await EndTheGame())">End The Game</button>
         }
-
+        <p>@messageForEndGame</p>
+    }
+    else if (GameId == null)
+    {
+        <input type="text" @bind-value="question" />
+        <button type="button" class="btn btn-sm btn-success" onclick="@(async () => await CreateNewGame())">Start new game</button>
     }
 </div>
 
@@ -66,7 +74,7 @@
     {
         <div style="display:flex;">
             <div style="width:50%; max-height:600px; overflow-y:scroll;">
-                <Chat RoomName="@GameId.Value" @ref="@chat" />
+                <Chat RoomName="@GameId.Value" GameFinished="gameFinished" @ref="@chat" />
             </div>
             <div style="width:50%; display:flex; max-height:600px; overflow-y:scroll;">
                 <table class="table">
@@ -109,8 +117,9 @@
 
         if (GameId.HasValue && GameId > 0)
         {
-            //TODO:  room #19 - на земле ясности не должно быть функции бросить кубик, исправить ошибку
+            gameFinished = await GetGameStatus();
             await GetInfoAboutExistGame();
+            await GetLog();
         }
 
         await base.OnInitializedAsync();
@@ -147,22 +156,37 @@
 
     private async Task GetInfoAboutExistGame()
     {
-        OracleDTO? gameOracle = null;
+        GameDTO? game = null;
         try
         {
-            gameOracle = await Http.GetFromJsonAsync<OracleDTO>($"api/Game/info?gameId={GameId}");
+            game = await Http.GetFromJsonAsync<GameDTO>($"api/Game/info?gameId={GameId}");
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex);
         }
-        pathToImage = gameOracle!.PathToImage;
-        RegionOnMap = gameOracle!.RegionOnMap;
-        PositionNumber = gameOracle!.StepOnPath;
+        pathToImage = game!.PathToImage;
+        RegionOnMap = game!.ActualPosition!.RegionOnMap;
+        PositionNumber = game!.ActualPosition!.PositionNumber;
 
-        await GetLog();
+        if (pathToImage != null)
+        {
+            var newGameposition = new GamePosition(game.Coordinates.x, game.Coordinates.y, pathToImage);
+            await MoveFigure(newGameposition);
+        }
     }
 
+    private async Task<bool> GetGameStatus()
+    {
+        try
+        {
+            return await Http.GetFromJsonAsync<bool>($"api/Game/status/{GameId}");
+        }
+        catch (Exception ex)
+        {
+            throw new OperationCanceledException(ex.Message);
+        }
+    }
 
     private async Task RollDice()
     {
@@ -184,14 +208,14 @@
             if (result!.IsFinished || (RegionOnMap == RegionOnMap.LandOfClarity && PositionNumber == 18))
             {
                 gameFinished = true;
-                messageForEndGame = "Гру закінчено!";
+                ChangeGameOutMessage("Гру закінчено!");
             }
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
         }
         else
         {
-            messageForEndGame = "Помилка при виконанні команди";
+            ChangeGameOutMessage("Помилка при виконанні команди");
         }
     }
 
@@ -220,7 +244,7 @@
             if (result!.IsFinished)
             {
                 gameFinished = true;
-                messageForEndGame = "Гру закінчено!";
+                ChangeGameOutMessage("Гру закінчено!");
             }
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
@@ -247,14 +271,14 @@
             if (result!.IsFinished || (RegionOnMap == RegionOnMap.LandOfClarity && PositionNumber == 18))
             {
                 gameFinished = true;
-                messageForEndGame = "Гру закінчено!";
+                ChangeGameOutMessage("Гру закінчено!");
             }
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
         }
         else
         {
-            messageForEndGame = "Помилка при виконанні команди";
+            ChangeGameOutMessage("Помилка при виконанні команди");
         }
     }
 
@@ -282,13 +306,16 @@
         var response = await Http.PostAsJsonAsync<int>($"api/Game/finish", GameId!.Value);
         if (response.IsSuccessStatusCode)
         {
-            //await chat!.SaveBaseChatLog();
             var result = await response.Content.ReadFromJsonAsync<string>();
-            messageForEndGame = result!;
+            ChangeGameOutMessage(result!);
             gameFinished = true;
         }
         await GetLog();
     }
 
+    private void ChangeGameOutMessage(string message)
+    {
+        messageForEndGame = message;
+    }
 }
 

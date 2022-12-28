@@ -20,7 +20,7 @@ else if (userGames.Count() > 0)
 {
     <table class="table table-striped">
         <thead>
-            <tr>
+            <tr class="text-center">
                 <th scope="col">Game Id</th>
                 <th scope="col">Created</th>
                 <th scope="col">State</th>
@@ -32,9 +32,9 @@ else if (userGames.Count() > 0)
         {
             <tr>
                 <td>@game.GameId</td>
-                <td>@game.Created</td>
-                <td>@(game.IsFinished == true ? "game is over" : "game is active")</td>
-                    <td><a href="/newGame/@game.GameId">Continue game</a></td>
+                    <td class="text-center">@game.Created</td>
+                    <td class="text-center">@(game.IsFinished == true ? "game is over" : "game is active")</td>
+                    <td class="text-center"><a href="/newGame/@game.GameId">@(game.IsFinished == true ? "View game" : "Continue game")</a></td>
             </tr>
         }
         </tbody>

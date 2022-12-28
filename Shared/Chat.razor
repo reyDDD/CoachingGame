@@ -8,15 +8,16 @@
 
 
 <PageTitle>Chat component</PageTitle>
-
-<div class="form-group">
-    <label>
-        Message:
-        <input @bind="messageInput" type="text" />
-    </label>
-</div>
-<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
-
+@if (!GameFinished)
+{
+    <div class="form-group">
+        <label>
+            Message:
+            <input @bind="messageInput" type="text" />
+        </label>
+    </div>
+    <button @onclick="Send" disabled="@(!IsConnected)">Send</button>
+}
 <hr>
 
 <ul id="messagesList">
@@ -34,6 +35,8 @@
     private string? token = null;
     [Parameter]
     public int RoomName { get; set; }
+    [Parameter]
+    public bool GameFinished { get; set; } = false;
 
 
     protected override async Task OnInitializedAsync()

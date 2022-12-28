@@ -9,7 +9,5 @@ namespace TamboliyaLibrary.Models
 
         [Required]
         public string Password { get; set; } = null!;
-
-        public bool RememberMe { get; set; }
     }
 }
