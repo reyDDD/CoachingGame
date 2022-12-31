@@ -1,10 +1,6 @@
 ﻿@page "/history"
 @inject IAuthService AuthService
 @attribute [Authorize(Roles = "User")]
-@using Newtonsoft.Json;
-@using IdentityModel;
-@using IdentityModel.Client;
-@inject HttpClient Http
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 

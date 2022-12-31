@@ -1,15 +1,123 @@
 ﻿@page "/"
+@inject IAuthService AuthService
+@inject NavigationManager NavManager;
 
 <h3>Home</h3>
 
-<AuthorizeView Roles="Admin">
-    <p>You can only see this if you satisfy the IsUser policy.</p>
+<AuthorizeView>
+    <Authorized>
+        <EditForm Model="@newParrentGame" OnValidSubmit="@(async () => await CreateNewGame())"
+                  Context="formContext">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <label for="@newParrentGame.Question">
+                Ваше питання для гри
+                <InputText id="question" @bind-Value="@newParrentGame.Question" />
+            </label>
+            <label for="@newParrentGame.DateBeginning">
+                Дата початку гри
+                <InputDateTime id="date" @bind-Value="@newParrentGame.DateBeginning" />
+            </label>
+            <label for="@newParrentGame.DateBeginning">
+                Максимальна кількість гравців
+                <InputNumber id="maxUsersCount" @bind-Value="@newParrentGame.MaxUsersCount" />
+            </label>
+            <label for="@newParrentGame.GameType">
+                Створити нову гру чи приєднатися до існуючої
+                <InputRadioGroup Name="gameType" @bind-Value="@newParrentGame.GameType">
+                    <InputRadio Name="gameType" Value="@GameType.Parrent" />
+                    <InputRadio Name="gameType" Value="@GameType.Child" />
+                    
+                </InputRadioGroup>
+            </label>
+            <label>
+                @if (newParrentGame.GameType == GameType.Child)
+                {
+                    <table class="table table-striped">
+                        <thead>
+                            <tr class="text-center">
+                                <th scope="col">Game Id</th>
+                                <th scope="col">Will start</th>
+                                <th scope="col">Choice</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <InputRadioGroup Name="parentGame" @bind-Value="newParrentGame.ParentGame">
+                                @if (userGames != null)
+                                {
+                                    foreach (var game in userGames)
+                                    {
+                                        <tr>
+                                            <td>@game.GameId</td>
+                                            <td class="text-center">@game.DateBeginning</td>
+                                            <td class="text-center">
+                                                <InputRadio Name="parentGame" Value="@game.GameId" />
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </InputRadioGroup>
+                        </tbody>
+                    </table>
+                }
+            </label>
+            <button type="submit" class="btn btn-sm btn-success">Start new game</button>
+        </EditForm>
+    </Authorized>
+    <NotAuthorized>
+        <p>Ви не авторизовані для перегляду списку найближчих ігор та можливості створення нової гри</p>
+    </NotAuthorized>
 </AuthorizeView>
 
-<AuthorizeView Roles="Admin">
-    <p>You can only see this if you satisfy the IsAdmin policy.</p>
-</AuthorizeView>
+
+
 
 @code {
+    private IEnumerable<GameDTO>? userGames;
+    private NewParentGame newParrentGame = new(){
+        GameType = GameType.Parrent
+    };
 
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await AuthService.GetHttpClientToken();
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
+        try
+        {
+            userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/gamesInfo");
+        }
+        catch (Exception)
+        {
+            userGames = new List<GameDTO>();
+        }
+       
+    }
+
+    private async Task JoinGame()
+    {
+
+    }
+
+    private async Task CreateNewGame()
+    {
+        OracleDTO? oracle = default;
+        try
+        {
+            var response = await Http.PostAsJsonAsync<NewParentGame>($"api/Game/new", newParrentGame);
+            if (response.IsSuccessStatusCode)
+            {
+                oracle = await response.Content.ReadFromJsonAsync<OracleDTO>();   
+            }
+            else
+            {
+                //TODO: додати логування і виводити дані в лог, а не консоль
+                Console.WriteLine("Помилка при створенні нової гри");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+        NavManager.NavigateTo($"/newGame/{oracle!.GameId}");
+    }
 }
