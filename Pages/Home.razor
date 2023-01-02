@@ -1,82 +1,83 @@
 ﻿@page "/"
 @inject IAuthService AuthService
 @inject NavigationManager NavManager;
-
+@attribute [Authorize(Roles = "User")]
 <h3>Home</h3>
 
-<AuthorizeView>
-    <Authorized>
-        <EditForm Model="@newParrentGame" OnValidSubmit="@(async () => await CreateNewGame())"
-                  Context="formContext">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
-            <label for="@newParrentGame.Question">
-                Ваше питання для гри
-                <InputText id="question" @bind-Value="@newParrentGame.Question" />
-            </label>
-            <label for="@newParrentGame.DateBeginning">
-                Дата початку гри
-                <InputDateTime id="date" @bind-Value="@newParrentGame.DateBeginning" />
-            </label>
-            <label for="@newParrentGame.DateBeginning">
-                Максимальна кількість гравців
-                <InputNumber id="maxUsersCount" @bind-Value="@newParrentGame.MaxUsersCount" />
-            </label>
-            <label for="@newParrentGame.GameType">
-                Створити нову гру чи приєднатися до існуючої
-                <InputRadioGroup Name="gameType" @bind-Value="@newParrentGame.GameType">
-                    <InputRadio Name="gameType" Value="@GameType.Parrent" />
-                    <InputRadio Name="gameType" Value="@GameType.Child" />
-                    
-                </InputRadioGroup>
-            </label>
-            <label>
-                @if (newParrentGame.GameType == GameType.Child)
-                {
-                    <table class="table table-striped">
-                        <thead>
-                            <tr class="text-center">
-                                <th scope="col">Game Id</th>
-                                <th scope="col">Will start</th>
-                                <th scope="col">Choice</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <InputRadioGroup Name="parentGame" @bind-Value="newParrentGame.ParentGame">
-                                @if (userGames != null)
-                                {
-                                    foreach (var game in userGames)
-                                    {
-                                        <tr>
-                                            <td>@game.GameId</td>
-                                            <td class="text-center">@game.DateBeginning</td>
-                                            <td class="text-center">
-                                                <InputRadio Name="parentGame" Value="@game.GameId" />
-                                            </td>
-                                        </tr>
-                                    }
-                                }
-                            </InputRadioGroup>
-                        </tbody>
-                    </table>
-                }
-            </label>
-            <button type="submit" class="btn btn-sm btn-success">Start new game</button>
-        </EditForm>
-    </Authorized>
-    <NotAuthorized>
-        <p>Ви не авторизовані для перегляду списку найближчих ігор та можливості створення нової гри</p>
-    </NotAuthorized>
-</AuthorizeView>
+
+<EditForm Model="@newGame" OnValidSubmit="@(async () => await JoinOrCreateNewGame())"
+          Context="formContext">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <label for="@newGame.Question">
+        Ваше питання для гри
+        <InputText id="question" @bind-Value="@newGame.Question" />
+    </label>
+    
+    <label for="@newGame.DateBeginning">
+        Максимальна кількість гравців
+        <InputNumber id="maxUsersCount" @bind-Value="@newGame.MaxUsersCount" />
+    </label>
+    <label for="@newGame.GameType">
+        Створити нову гру чи приєднатися до існуючої
+        <InputRadioGroup Name="gameType" ValueChanged="@((e) => SelectGameType(e))" TValue="GameType" ValueExpression="() => newGame.GameType">
+            <InputRadio Name="gameType" Value="@GameType.Parrent" checked="@(newGame.GameType == GameType.Parrent)" />
+            <InputRadio Name="gameType" Value="@GameType.Child"  checked="@(newGame.GameType == GameType.Child)" />
+        </InputRadioGroup>
+    </label>
+    @if (!newGame.ParentGame.HasValue)
+    {
+        <label for="@newGame.DateBeginning">
+            Дата початку гри
+            <InputDateTime id="date" @bind-Value="@newGame.DateBeginning" />
+        </label>
+    }
+    <label>
+        @if (newGame.GameType == GameType.Child)
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr class="text-center">
+                        <th scope="col">Game Id</th>
+                        <th scope="col">Will start</th>
+                        <th scope="col">Choice</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <InputRadioGroup Name="parentGame" @bind-Value="newGame.ParentGame">
+                        @if (userGames != null)
+                        {
+                            foreach (var game in userGames)
+                            {
+                                <tr>
+                                    <td>@game.GameId</td>
+                                    <td class="text-center">@game.DateBeginning</td>
+                                    <td class="text-center">
+                                        <InputRadio Name="parentGame" Value="@game.GameId" />
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </InputRadioGroup>
+                </tbody>
+            </table>
+        }
+    </label>
+    <button type="submit" class="btn btn-sm btn-success">Start new game</button>
+</EditForm>
+
 
 
 
 
 @code {
+    //TODO:додати поле для дати закінчення основної гри, якщо це основна, а також обробити ці далі на бекенді
     private IEnumerable<GameDTO>? userGames;
-    private NewParentGame newParrentGame = new(){
-        GameType = GameType.Parrent
-    };
+    private NewUserGame newGame = new()
+        {
+            GameType = GameType.Parrent,
+            DateBeginning = DateTime.Now.AddHours(1)
+        };
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,29 +85,37 @@
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
         try
         {
-            userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/gamesInfo");
+            userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/lastGamesToJoin");
         }
         catch (Exception)
         {
             userGames = new List<GameDTO>();
         }
-       
-    }
-
-    private async Task JoinGame()
-    {
 
     }
 
-    private async Task CreateNewGame()
+    private async Task JoinOrCreateNewGame()
     {
+        if (newGame.GameType == GameType.Parrent)
+        {
+            newGame.ParentGame = null;
+        }
+        else if (newGame.GameType == GameType.Child)
+        {
+            var selectGame = userGames?.FirstOrDefault(x => x.GameId == newGame.ParentGame);
+            if (selectGame != null && selectGame != default(GameDTO))
+            {
+                newGame.DateBeginning = selectGame!.DateBeginning;
+            }
+        }
+
         OracleDTO? oracle = default;
         try
         {
-            var response = await Http.PostAsJsonAsync<NewParentGame>($"api/Game/new", newParrentGame);
+            var response = await Http.PostAsJsonAsync<NewUserGame>($"api/Game/new", newGame);
             if (response.IsSuccessStatusCode)
             {
-                oracle = await response.Content.ReadFromJsonAsync<OracleDTO>();   
+                oracle = await response.Content.ReadFromJsonAsync<OracleDTO>();
             }
             else
             {
@@ -119,5 +128,15 @@
             Console.WriteLine(ex);
         }
         NavManager.NavigateTo($"/newGame/{oracle!.GameId}");
+    }
+
+    private void SelectGameType(GameType gameType)
+    {
+        newGame.GameType = gameType;
+        if (gameType == GameType.Parrent)
+        {
+            newGame.ParentGame = null;
+        }
+        StateHasChanged();
     }
 }

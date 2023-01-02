@@ -8,9 +8,11 @@ using System.Threading.Tasks;
 
 namespace TamboliyaLibrary.Models
 {
-    public class NewParentGame
+    public class NewUserGame
     {
         private DateTime dateBeginning;
+        public int? parentGame;
+
 
         [Required, MinLength(10, ErrorMessage = "Question's lenght is too short")]
         public string Question { get; set; } = null!;
@@ -36,7 +38,23 @@ namespace TamboliyaLibrary.Models
         [Required]
         public GameType GameType { get; set; }
 
-        public int? ParentGame { get; set; }
+        public int? ParentGame
+        {
+            get
+            {
+                return parentGame;
+            }
+            set {
+                if (GameType == GameType.Child)
+                {
+                    parentGame = value;
+                }
+                else
+                {
+                    parentGame = null;
+                }
+            }
+        }
 
         [Range(1, 6)]
         public int MaxUsersCount { get; set; }

@@ -43,18 +43,17 @@ namespace Tamboliya.Services
         public async Task<LoginResult> Login(LoginModel loginModel)
         {
             var response = await _httpClient.PostAsJsonAsync<LoginModel>("api/Login", loginModel);
-
+            var result = await response.Content.ReadFromJsonAsync<LoginResult>();
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<LoginResult>();
-
-                await _localStorage.SetItemAsync("authToken", result!.Token);
-                ((ApiAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsAuthenticated(result!.Token);
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result!.Token);
-
-                return result;
+                if (result != null)
+                {
+                    await _localStorage.SetItemAsync("authToken", result!.Token);
+                    ((ApiAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsAuthenticated(result?.Token);
+                    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result!.Token);
+                }
             }
-            return new();
+            return result!;
         }
 
         public async Task Logout()

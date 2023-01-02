@@ -4,11 +4,11 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 
-<PageTitle>Games history for user @(async() => await GetUserEmail())</PageTitle>
+<PageTitle>Games history for user @(async () => await GetUserEmail())</PageTitle>
 
-<h1>Games history</h1>
+    <h1>Games history</h1>
 
-@if (userGames is null)
+    @if (userGames is null)
 {
     <p>Loading...</p>
 }
@@ -19,20 +19,22 @@ else if (userGames.Count() > 0)
             <tr class="text-center">
                 <th scope="col">Game Id</th>
                 <th scope="col">Created</th>
+                <th scope="col">Parent or child</th>
                 <th scope="col">State</th>
                 <th scope="col">Continue</th>
             </tr>
         </thead>
         <tbody>
-        @foreach (var game in userGames)
-        {
-            <tr>
-                <td>@game.GameId</td>
+            @foreach (var game in userGames)
+            {
+                <tr>
+                    <td>@game.GameId</td>
                     <td class="text-center">@game.Created</td>
+                    <td class="text-center">@game.GameType</td>
                     <td class="text-center">@(game.IsFinished == true ? "game is over" : "game is active")</td>
                     <td class="text-center"><a href="/newGame/@game.GameId">@(game.IsFinished == true ? "View game" : "Continue game")</a></td>
-            </tr>
-        }
+                </tr>
+            }
         </tbody>
     </table>
 }

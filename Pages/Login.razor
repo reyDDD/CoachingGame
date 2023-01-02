@@ -37,7 +37,7 @@
 
     private LoginModel loginModel = new LoginModel();
     private bool ShowErrors;
-    private string Error = "";
+    private string? Error = String.Empty;
 
     private async Task HandleLogin()
     {
@@ -51,7 +51,7 @@
         }
         else
         {
-            Error = result.Error;
+            Error = result!.Error;
             ShowErrors = true;
         }
     }
