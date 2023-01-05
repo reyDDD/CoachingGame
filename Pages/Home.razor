@@ -14,7 +14,7 @@
         <InputText id="question" @bind-Value="@newGame.Question" />
     </label>
     
-    <label for="@newGame.DateBeginning">
+    <label for="@newGame.MaxUsersCount">
         Максимальна кількість гравців
         <InputNumber id="maxUsersCount" @bind-Value="@newGame.MaxUsersCount" />
     </label>
@@ -29,7 +29,11 @@
     {
         <label for="@newGame.DateBeginning">
             Дата початку гри
-            <InputDateTime id="date" @bind-Value="@newGame.DateBeginning" />
+            <InputDateTime id="dateBeginning" @bind-Value="@newGame.DateBeginning" />
+        </label>
+        <label for="@newGame.DateEnding">
+            Дата закінчення гри
+            <InputDateTime id="date" @bind-Value="@newGame.DateEnding" />
         </label>
     }
     <label>
@@ -40,6 +44,7 @@
                     <tr class="text-center">
                         <th scope="col">Game Id</th>
                         <th scope="col">Will start</th>
+                        <th scope="col">Will finish</th>
                         <th scope="col">Choice</th>
                     </tr>
                 </thead>
@@ -52,6 +57,7 @@
                                 <tr>
                                     <td>@game.GameId</td>
                                     <td class="text-center">@game.DateBeginning</td>
+                                    <td class="text-center">@game.DateEnding</td>
                                     <td class="text-center">
                                         <InputRadio Name="parentGame" Value="@game.GameId" />
                                     </td>
@@ -71,12 +77,14 @@
 
 
 @code {
+    //TODO: зробити так, щоб при завантаженні сторінки відображався один з пунктів типу гри як відмічений (батьківська чи дочірня гра)
     //TODO:додати поле для дати закінчення основної гри, якщо це основна, а також обробити ці далі на бекенді
     private IEnumerable<GameDTO>? userGames;
     private NewUserGame newGame = new()
         {
             GameType = GameType.Parrent,
-            DateBeginning = DateTime.Now.AddHours(1)
+            DateBeginning = DateTime.Now.AddHours(1),
+            DateEnding = DateTime.Now.AddHours(4)
         };
 
     protected override async Task OnInitializedAsync()
@@ -106,6 +114,7 @@
             if (selectGame != null && selectGame != default(GameDTO))
             {
                 newGame.DateBeginning = selectGame!.DateBeginning;
+                newGame.DateEnding = selectGame!.DateEnding;
             }
         }
 

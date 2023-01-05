@@ -11,7 +11,8 @@ namespace TamboliyaLibrary.Models
     public class NewUserGame
     {
         private DateTime dateBeginning;
-        public int? parentGame;
+        private DateTime dateEnding;
+        private int? parentGame;
 
 
         [Required, MinLength(10, ErrorMessage = "Question's lenght is too short")]
@@ -31,6 +32,24 @@ namespace TamboliyaLibrary.Models
                 {
                     CultureInfo CI = CultureInfo.CurrentCulture;
                     throw new ArgumentException(value.ToString(CI), "Date isn't right");
+                }
+            }
+        }
+
+        [Required]
+        public DateTime DateEnding
+        {
+            get { return dateEnding; }
+            set
+            {
+                if (value > DateTime.UtcNow)
+                {
+                    dateEnding = value;
+                }
+                else
+                {
+                    CultureInfo CI = CultureInfo.CurrentCulture;
+                    throw new ArgumentException(value.ToString(CI), "Date ending isn't right");
                 }
             }
         }

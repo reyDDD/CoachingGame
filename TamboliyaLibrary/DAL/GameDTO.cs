@@ -10,7 +10,7 @@ namespace TamboliyaLibrary.DAL
 
 		//TODO: will update new filling fields in program
         public DateTime DateBeginning { get; set; }
-        public DateTime DateEnd { get; set; }
+        public DateTime DateEnding { get; set; }
         public int? ParentGame { get; set; }
         public IEnumerable<GameDTO> ChildsGames = new List<GameDTO>();
         public Guid CreatorGuid { get; set; }

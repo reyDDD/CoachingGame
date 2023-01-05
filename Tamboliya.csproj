@@ -32,4 +32,10 @@
     <ProjectReference Include="TamboliyaLibrary\TamboliyaLibrary.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="wwwroot\js\konva.min.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

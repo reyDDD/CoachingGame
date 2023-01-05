@@ -125,35 +125,6 @@
         await base.OnInitializedAsync();
     }
 
-
-    //private async Task CreateNewGame()
-    //{
-    //    if (!String.IsNullOrEmpty(question))
-    //    {
-    //        OracleDTO? gameOracle = null;
-    //        try
-    //        {
-    //            gameOracle = await Http.GetFromJsonAsync<OracleDTO>($"api/Game/new?question={question}");
-
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            Console.WriteLine(ex);
-    //        }
-
-    //        GameId = gameOracle!.GameId;
-    //        pathToImage = gameOracle!.PathToImage;
-    //        RegionOnMap = gameOracle!.RegionOnMap;
-    //        PositionNumber = gameOracle!.StepOnPath;
-    //        if (pathToImage != null)
-    //        {
-    //            var newGameposition = new GamePosition(gameOracle.Coordinates.x, gameOracle.Coordinates.y, pathToImage);
-    //            await MoveFigure(newGameposition);
-    //            await GetLog();
-    //        }
-    //    }
-    //}
-
     private async Task GetInfoAboutExistGame()
     {
         GameDTO? game = null;
