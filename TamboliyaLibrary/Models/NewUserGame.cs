@@ -75,7 +75,7 @@ namespace TamboliyaLibrary.Models
             }
         }
 
-        [Range(1, 6)]
+        [Range(0, 6)]
         public int MaxUsersCount { get; set; }
     }
 }

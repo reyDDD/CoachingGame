@@ -4,6 +4,7 @@
 @attribute [Authorize(Roles = "User")]
 <h3>Home</h3>
 
+<p class="@(messageForEndGame == String.Empty ? "" : "alert alert-danger")">@messageForEndGame</p>
 
 <EditForm Model="@newGame" OnValidSubmit="@(async () => await JoinOrCreateNewGame())"
           Context="formContext">
@@ -77,8 +78,10 @@
 
 
 @code {
+    //TODO: якщо користувач вибирає функцію Приєднатися до існуючої гри, не повинно відображатися вікно з максимальною 
+    //кількістю гравців, за щамовчанням треба задавати одиницю
     //TODO: зробити так, щоб при завантаженні сторінки відображався один з пунктів типу гри як відмічений (батьківська чи дочірня гра)
-    //TODO:додати поле для дати закінчення основної гри, якщо це основна, а також обробити ці далі на бекенді
+    private string messageForEndGame = String.Empty;
     private IEnumerable<GameDTO>? userGames;
     private NewUserGame newGame = new()
         {
@@ -94,6 +97,8 @@
         try
         {
             userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/lastGamesToJoin");
+            //TODO: якщо немає ігр, до яких можна приєднатися, то взагалі не показувати можливість вибору, а ставити 
+            //за замовчуванням батьківську гру
         }
         catch (Exception)
         {
@@ -104,6 +109,8 @@
 
     private async Task JoinOrCreateNewGame()
     {
+        ChangeGameOutMessage("");
+
         if (newGame.GameType == GameType.Parrent)
         {
             newGame.ParentGame = null;
@@ -125,18 +132,21 @@
             if (response.IsSuccessStatusCode)
             {
                 oracle = await response.Content.ReadFromJsonAsync<OracleDTO>();
+                NavManager.NavigateTo($"/newGame/{oracle!.GameId}");
             }
             else
             {
                 //TODO: додати логування і виводити дані в лог, а не консоль
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                ChangeGameOutMessage(errorMessage.Replace('"', ' ' ));
                 Console.WriteLine("Помилка при створенні нової гри");
+                StateHasChanged();
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex);
         }
-        NavManager.NavigateTo($"/newGame/{oracle!.GameId}");
     }
 
     private void SelectGameType(GameType gameType)
@@ -147,5 +157,13 @@
             newGame.ParentGame = null;
         }
         StateHasChanged();
+    }
+
+    private void ChangeGameOutMessage(string message = "")
+    {
+        if (message == "")
+            message = String.Empty;
+
+        messageForEndGame = message;
     }
 }

@@ -55,13 +55,8 @@
             <button type="button" class="btn btn-sm btn-danger" onclick="@(async () => await GoToNewPosition())">Go to new position</button>
             <button type="button" class="btn btn-sm btn-info" onclick="@(async () => await EndTheGame())">End The Game</button>
         }
-        <p>@messageForEndGame</p>
+        <p class="@(messageForEndGame == String.Empty ? "" : "alert alert-danger")">@messageForEndGame</p>
     }
-@*    else if (GameId == null)
-    {
-        <input type="text" @bind-value="question" />
-        <button type="button" class="btn btn-sm btn-success" onclick="@(async () => await CreateNewGame())">Start new game</button>
-    }*@
 </div>
 
 @if (GameId > 0)
@@ -161,6 +156,7 @@
 
     private async Task RollDice()
     {
+        ChangeGameOutMessage("");
         var model = new MoveModel()
             {
                 GameId = GameId!.Value,
@@ -192,6 +188,7 @@
 
     private async Task GoToNewPositionWhatImDoingHere(ChangeEventArgs e)
     {
+        ChangeGameOutMessage("");
         SelectedIdForNextStepToEmbodiment = Convert.ToInt32(e.Value);
         MoveModel model = new MoveModel()
             {
@@ -224,6 +221,7 @@
 
     private async Task GoToNewPosition()
     {
+        ChangeGameOutMessage("");
         MoveModel model = new MoveModel()
             {
                 GameId = GameId!.Value,
@@ -274,6 +272,7 @@
 
     private async Task EndTheGame()
     {
+        ChangeGameOutMessage("");
         var response = await Http.PostAsJsonAsync<int>($"api/Game/finish", GameId!.Value);
         if (response.IsSuccessStatusCode)
         {
@@ -284,8 +283,11 @@
         await GetLog();
     }
 
-    private void ChangeGameOutMessage(string message)
+    private void ChangeGameOutMessage(string message = "")
     {
+        if (message == "")
+            message = String.Empty;
+
         messageForEndGame = message;
     }
 }
