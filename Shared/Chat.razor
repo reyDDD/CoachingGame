@@ -66,6 +66,8 @@
         await hubConnection.StartAsync();
         StateHasChanged();
         await ConnectToRoom();
+
+        await base.OnInitializedAsync();
     }
 
     private async Task Send()

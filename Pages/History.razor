@@ -56,7 +56,7 @@ else if (userGames.Count() > 0)
             Console.WriteLine(ex.Message);
             userGames = new List<GameDTO>();
         }
-
+        await base.OnInitializedAsync();
     }
 
     private async Task<string> GetUserEmail()

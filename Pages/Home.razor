@@ -38,11 +38,11 @@
     {
         <label for="@newGame.DateBeginning">
             Дата початку гри
-            <InputDateTime id="dateBeginning" @bind-Value="@newGame.DateBeginning" />
+            <InputDateTime Value="newGame.DateBeginning" ValueChanged="@((val) => SetDateGameStarted(val))" TValue="DateTime" ValueExpression="() => newGame.DateBeginning" />
         </label>
         <label for="@newGame.DateEnding">
             Дата закінчення гри
-            <InputDateTime id="date" @bind-Value="@newGame.DateEnding" />
+            <InputDateTime @bind-Value="@newGame.DateEnding" />
         </label>
     }
     <label>
@@ -96,6 +96,7 @@
             DateEnding = DateTime.Now.AddHours(4)
         };
 
+
     protected override async Task OnInitializedAsync()
     {
         var token = await AuthService.GetHttpClientToken();
@@ -110,7 +111,7 @@
         {
             userGames = new List<GameDTO>();
         }
-
+        await base.OnInitializedAsync();
     }
 
     private async Task JoinOrCreateNewGame()
@@ -171,5 +172,12 @@
             message = String.Empty;
 
         messageForEndGame = message;
+    }
+
+    private void SetDateGameStarted(DateTime dateStarted)
+    {
+        newGame.DateEnding = newGame.DateBeginning.AddHours(3);
+        ChangeGameOutMessage("End date of game has updated!");
+        StateHasChanged();
     }
 }
