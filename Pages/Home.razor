@@ -14,16 +14,24 @@
         Ваше питання для гри
         <InputText id="question" @bind-Value="@newGame.Question" />
     </label>
-    
-    <label for="@newGame.MaxUsersCount">
-        Максимальна кількість гравців
-        <InputNumber id="maxUsersCount" @bind-Value="@newGame.MaxUsersCount" />
-    </label>
+
+    @if (newGame.GameType != GameType.Child)
+    {
+        <label for="@newGame.MaxUsersCount">
+            Максимальна кількість гравців
+            <InputNumber id="maxUsersCount" @bind-Value="@newGame.MaxUsersCount" />
+        </label>
+    }
+    else
+    {
+        newGame.MaxUsersCount = 0;
+    }
+
     <label for="@newGame.GameType">
         Створити нову гру чи приєднатися до існуючої
         <InputRadioGroup Name="gameType" ValueChanged="@((e) => SelectGameType(e))" TValue="GameType" ValueExpression="() => newGame.GameType">
             <InputRadio Name="gameType" Value="@GameType.Parrent" checked="@(newGame.GameType == GameType.Parrent)" />
-            <InputRadio Name="gameType" Value="@GameType.Child"  checked="@(newGame.GameType == GameType.Child)" />
+            <InputRadio Name="gameType" Value="@GameType.Child" checked="@(newGame.GameType == GameType.Child)" />
         </InputRadioGroup>
     </label>
     @if (!newGame.ParentGame.HasValue)
@@ -78,9 +86,7 @@
 
 
 @code {
-    //TODO: якщо користувач вибирає функцію Приєднатися до існуючої гри, не повинно відображатися вікно з максимальною 
-    //кількістю гравців, за щамовчанням треба задавати одиницю
-    //TODO: зробити так, щоб при завантаженні сторінки відображався один з пунктів типу гри як відмічений (батьківська чи дочірня гра)
+    //TODO 3 зробити так, щоб при завантаженні сторінки відображався один з пунктів типу гри як відмічений (батьківська чи дочірня гра)
     private string messageForEndGame = String.Empty;
     private IEnumerable<GameDTO>? userGames;
     private NewUserGame newGame = new()
@@ -97,7 +103,7 @@
         try
         {
             userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/lastGamesToJoin");
-            //TODO: якщо немає ігр, до яких можна приєднатися, то взагалі не показувати можливість вибору, а ставити 
+            //TODO: якщо немає ігр, до яких можна приєднатися, то взагалі не показувати можливість вибору, а ставити
             //за замовчуванням батьківську гру
         }
         catch (Exception)
@@ -138,7 +144,7 @@
             {
                 //TODO: додати логування і виводити дані в лог, а не консоль
                 var errorMessage = await response.Content.ReadAsStringAsync();
-                ChangeGameOutMessage(errorMessage.Replace('"', ' ' ));
+                ChangeGameOutMessage(errorMessage.Replace('"', ' '));
                 Console.WriteLine("Помилка при створенні нової гри");
                 StateHasChanged();
             }
