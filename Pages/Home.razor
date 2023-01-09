@@ -44,7 +44,7 @@
         </label>
         <label for="@newGame.DateEnding">
             Дата закінчення гри
-            <InputDateTime @bind-Value="@newGame.DateEnding" />
+            <InputDateTime Value="newGame.DateEnding" ValueChanged="@((val) => SetDateGameEnded(val))" TValue="DateTime" ValueExpression="() => newGame.DateEnding" />
         </label>
     }
     <label>
@@ -191,8 +191,22 @@
 
     private void SetDateGameStarted(DateTime dateStarted)
     {
+        newGame.DateBeginning = dateStarted;
         newGame.DateEnding = newGame.DateBeginning.AddHours(3);
         ChangeGameOutMessage("End date of game has updated!");
+        StateHasChanged();
+    }
+
+    private void SetDateGameEnded(DateTime dateEnded)
+    {
+        if (dateEnded.AddHours(10) > newGame.DateBeginning)
+        {
+            newGame.DateEnding = dateEnded;
+        }
+        else
+        {
+            ChangeGameOutMessage("Selected end date of game not valid!");
+        }
         StateHasChanged();
     }
 }

@@ -42,7 +42,7 @@ namespace TamboliyaLibrary.Models
             get { return dateEnding; }
             set
             {
-                if (value > DateTime.UtcNow)
+                if (value > DateTime.UtcNow && value > DateBeginning.AddHours(1))
                 {
                     dateEnding = value;
                 }
