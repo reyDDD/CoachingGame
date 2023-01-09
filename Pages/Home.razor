@@ -30,8 +30,8 @@
     <label for="@newGame.GameType">
         Створити нову гру чи приєднатися до існуючої
         <InputRadioGroup Name="gameType" ValueChanged="@((e) => SelectGameType(e))" TValue="GameType" ValueExpression="() => newGame.GameType">
-            <InputRadio Name="gameType" Value="@GameType.Parrent" checked="@(newGame.GameType == GameType.Parrent)" />
-            <InputRadio Name="gameType" Value="@GameType.Child" checked="@(newGame.GameType == GameType.Child)" />
+            <InputRadio Name="gameType"  Value="@GameType.Parrent" />
+            <InputRadio Name="gameType" Value="@GameType.Child" />
         </InputRadioGroup>
     </label>
     @if (!newGame.ParentGame.HasValue)
@@ -130,6 +130,11 @@
                 newGame.DateBeginning = selectGame!.DateBeginning;
                 newGame.DateEnding = selectGame!.DateEnding;
             }
+        }
+        else if (newGame.GameType == GameType.NotSet)
+        {
+            ChangeGameOutMessage("Game Type don't selected");
+            return;
         }
 
         OracleDTO? oracle = default;
