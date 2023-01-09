@@ -26,14 +26,16 @@
     {
         newGame.MaxUsersCount = 0;
     }
-
-    <label for="@newGame.GameType">
-        Створити нову гру чи приєднатися до існуючої
-        <InputRadioGroup Name="gameType" ValueChanged="@((e) => SelectGameType(e))" TValue="GameType" ValueExpression="() => newGame.GameType">
-            <InputRadio Name="gameType"  Value="@GameType.Parrent" />
-            <InputRadio Name="gameType" Value="@GameType.Child" />
-        </InputRadioGroup>
-    </label>
+    @if (childGamesExist)
+    {
+        <label for="@newGame.GameType">
+            Створити нову гру чи приєднатися до існуючої
+            <InputRadioGroup Name="gameType" ValueChanged="@((e) => SelectGameType(e))" TValue="GameType" ValueExpression="() => newGame.GameType">
+                <InputRadio Name="gameType" Value="@GameType.Parrent" />
+                <InputRadio Name="gameType" Value="@GameType.Child" />
+            </InputRadioGroup>
+        </label>
+    }
     @if (!newGame.ParentGame.HasValue)
     {
         <label for="@newGame.DateBeginning">
@@ -86,9 +88,9 @@
 
 
 @code {
-    //TODO 3 зробити так, щоб при завантаженні сторінки відображався один з пунктів типу гри як відмічений (батьківська чи дочірня гра)
     private string messageForEndGame = String.Empty;
     private IEnumerable<GameDTO>? userGames;
+    private bool childGamesExist = true;
     private NewUserGame newGame = new()
         {
             GameType = GameType.Parrent,
@@ -104,13 +106,21 @@
         try
         {
             userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/lastGamesToJoin");
-            //TODO: якщо немає ігр, до яких можна приєднатися, то взагалі не показувати можливість вибору, а ставити
-            //за замовчуванням батьківську гру
         }
         catch (Exception)
         {
             userGames = new List<GameDTO>();
         }
+        finally
+        {
+            if (userGames.Count() == 0)
+            {
+                childGamesExist = false;
+                newGame.GameType = GameType.Parrent;
+                StateHasChanged();
+            }
+        }
+
         await base.OnInitializedAsync();
     }
 
