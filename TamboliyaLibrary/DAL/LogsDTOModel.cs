@@ -3,6 +3,6 @@ namespace TamboliyaLibrary.DAL
 {
     public class LogsDTOModel : GameUserDTO
     {
-        public HashSet<string> Messages { get; set; } = null!;
+        public string Message { get; set; } = null!;
     }
 }

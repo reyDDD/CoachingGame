@@ -21,7 +21,7 @@
 <hr>
 
 <ul id="messagesList">
-    @foreach (var message in messages)
+    @foreach (var message in logLines)
     {
         <li>@message</li>
     }
@@ -29,7 +29,7 @@
 
 @code {
     private HubConnection? hubConnection;
-    private HashSet<string> messages = new HashSet<string>();
+    private List<string> logLines = new List<string>();
     private string? messageInput;
     private string? userMail;
     private string? token = null;
@@ -43,11 +43,7 @@
     {
         token = await AuthService.GetHttpClientToken();
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
-        var log = await Http.GetFromJsonAsync<LogsDTOModel>($"api/GameLog/info?GameId={RoomName}");
-        if (log?.Messages.Count() > 0)
-        {
-            messages = log!.Messages;
-        }
+        logLines = await Http.GetFromJsonAsync<List<string>>($"api/GameLog/info?GameId={RoomName}");
 
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         userMail = state.User.Identity?.Name;
@@ -103,6 +99,8 @@
 
     public async Task AddNewMessageToChatLog(string message)
     {
+        //UNDONE новые сообщения в чат не добавляются
+        //UNDONE при присоединении к уже существующему чату сообщение о присоединении в базу не добавляется
         LogLineDTOModel model = new()
             {
                 GameId = RoomName,
@@ -110,7 +108,7 @@
             };
         await Http.PostAsJsonAsync<LogLineDTOModel>($"api/GameLog/addMessageToLog", model);
 
-        messages = (await Http.GetFromJsonAsync<LogsDTOModel>($"api/GameLog/info?GameId={RoomName}"))!.Messages;
+        logLines = await Http.GetFromJsonAsync<List<string>>($"api/GameLog/info?GameId={RoomName}");
     }
 
     private void OnMessageFromServer(int roomName, string message)
@@ -118,7 +116,9 @@
         Task.Run(async () =>
         {
             var encodedMsg = $"{message} to room #{RoomName}";
-            messages.Add(encodedMsg);
+            //UNDONE з цією строкою нижче додавав запис в чат на сторінці. Перевірити, чи без неї 
+            // буде оновлюватися список повідомлень на сторінці
+            //logLines.Add(encodedMsg);
             await AddNewMessageToChatLog(encodedMsg);
             StateHasChanged();
         });

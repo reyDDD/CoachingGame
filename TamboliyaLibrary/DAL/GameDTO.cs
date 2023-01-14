@@ -8,7 +8,6 @@ namespace TamboliyaLibrary.DAL
 		public bool IsFinished { get; set; }
 		public DateTime Created { get; set; }
 
-		//TODO: will update new filling fields in program
         public DateTime DateBeginning { get; set; }
         public DateTime DateEnding { get; set; }
         public int? ParentGame { get; set; }

@@ -159,9 +159,9 @@
             else
             {
                 //TODO: додати логування і виводити дані в лог, а не консоль
-                var errorMessage = await response.Content.ReadAsStringAsync();
-                ChangeGameOutMessage(errorMessage.Replace('"', ' '));
-                Console.WriteLine("Помилка при створенні нової гри");
+                var errorMessage = "Помилка при створенні нової гри" ;
+                ChangeGameOutMessage(errorMessage);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 StateHasChanged();
             }
         }
