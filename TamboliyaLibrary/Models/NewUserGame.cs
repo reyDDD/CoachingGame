@@ -15,6 +15,10 @@ namespace TamboliyaLibrary.Models
         private int? parentGame;
 
 
+ 
+        public int TimeOffset { get; set; } = default;
+
+
         [Required, MinLength(10, ErrorMessage = "Question's lenght is too short")]
         public string Question { get; set; } = null!;
 
@@ -24,15 +28,17 @@ namespace TamboliyaLibrary.Models
             get { return dateBeginning; }
             set
             {
-                if (value > DateTime.UtcNow)
-                {
-                    dateBeginning = value;
-                }
-                else
-                {
-                    CultureInfo CI = CultureInfo.CurrentCulture;
-                    throw new ArgumentException(value.ToString(CI), "Date isn't right");
-                }
+                dateBeginning = value;
+                //TODO: виконати перевірку в іншому місці
+                //if (value > DateTime.UtcNow)
+                //{
+                //    dateBeginning = value;
+                //}
+                //else
+                //{
+                //    CultureInfo CI = CultureInfo.CurrentCulture;
+                //    throw new ArgumentException(value.ToString(CI), "Date isn't right");
+                //}
             }
         }
 

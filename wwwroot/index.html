@@ -23,6 +23,7 @@
     <script src="/js/konva.min.js"></script>
 
     <script>
+        //script that set point on the map
         var anim;
         var imagePosition = {
             x: 200,
@@ -65,7 +66,14 @@
         }
     </script>
 
+    <script>
+        //get user time zone
+        function getAppTimeZone() {
+            var d = new Date();
+            return d.getTimezoneOffset();
+        }
 
+    </script>
 </body>
 
 </html>

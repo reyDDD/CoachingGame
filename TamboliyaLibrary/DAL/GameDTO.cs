@@ -2,14 +2,12 @@
 
 namespace TamboliyaLibrary.DAL
 {
-	public class GameDTO
-	{
+	public class GameDTO : RangeDate
+    {
 		public int GameId { get; set; }
 		public bool IsFinished { get; set; }
-		public DateTime Created { get; set; }
+		public DateTimeOffset Created { get; set; }
 
-        public DateTime DateBeginning { get; set; }
-        public DateTime DateEnding { get; set; }
         public int? ParentGame { get; set; }
         public IEnumerable<GameDTO> ChildsGames = new List<GameDTO>();
         public Guid CreatorGuid { get; set; }

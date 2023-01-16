@@ -1,7 +1,6 @@
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Tamboliya;
 using Tamboliya.Services;
@@ -23,7 +22,7 @@ builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>()
 	.CreateClient("Tamboliya.ServerAPI"));
 
  
-
+//UNDONE: Додати перевірку статусу http-запитів, якщо відповідь з кодом 401, видаляти з локального сховища запис і направляти на сторінку авторизації
 var host = builder.Build();
 
 await host.RunAsync();

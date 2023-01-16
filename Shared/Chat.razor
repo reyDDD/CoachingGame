@@ -99,8 +99,6 @@
 
     public async Task AddNewMessageToChatLog(string message)
     {
-        //UNDONE новые сообщения в чат не добавляются
-        //UNDONE при присоединении к уже существующему чату сообщение о присоединении в базу не добавляется
         LogLineDTOModel model = new()
             {
                 GameId = RoomName,
@@ -108,7 +106,20 @@
             };
         await Http.PostAsJsonAsync<LogLineDTOModel>($"api/GameLog/addMessageToLog", model);
 
-        logLines = await Http.GetFromJsonAsync<List<string>>($"api/GameLog/info?GameId={RoomName}");
+        try
+        {
+            var response = await Http.GetFromJsonAsync<List<string>>($"api/GameLog/info?GameId={RoomName}");
+            if (response != null)
+            {
+                logLines = response;
+            }
+        }
+        catch (Exception ex)
+        {
+            //TODO додавати інформацію в лог, а не на консоль
+            Console.WriteLine(ex.Message);
+        }
+        
     }
 
     private void OnMessageFromServer(int roomName, string message)
@@ -116,9 +127,6 @@
         Task.Run(async () =>
         {
             var encodedMsg = $"{message} to room #{RoomName}";
-            //UNDONE з цією строкою нижче додавав запис в чат на сторінці. Перевірити, чи без неї 
-            // буде оновлюватися список повідомлень на сторінці
-            //logLines.Add(encodedMsg);
             await AddNewMessageToChatLog(encodedMsg);
             StateHasChanged();
         });

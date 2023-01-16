@@ -1,6 +1,8 @@
 ﻿@page "/"
+@using System.Globalization
 @inject IAuthService AuthService
-@inject NavigationManager NavManager;
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
 @attribute [Authorize(Roles = "User")]
 <h3>Home</h3>
 
@@ -40,11 +42,11 @@
     {
         <label for="@newGame.DateBeginning">
             Дата початку гри
-            <InputDateTime Value="newGame.DateBeginning" ValueChanged="@((val) => SetDateGameStarted(val))" TValue="DateTime" ValueExpression="() => newGame.DateBeginning" />
+            <InputDateTime Value="newGame.DateBeginning" ValueChanged="@(async (val) => await SetDateGameStarted(val))" TValue="DateTime" ValueExpression="() => newGame.DateBeginning" />
         </label>
         <label for="@newGame.DateEnding">
             Дата закінчення гри
-            <InputDateTime Value="newGame.DateEnding" ValueChanged="@((val) => SetDateGameEnded(val))" TValue="DateTime" ValueExpression="() => newGame.DateEnding" />
+            <InputDateTime Value="newGame.DateEnding" ValueChanged="@(async (val) => await SetDateGameEnded(val))" TValue="DateTime" ValueExpression="() => newGame.DateEnding" />
         </label>
     }
     <label>
@@ -67,8 +69,8 @@
                             {
                                 <tr>
                                     <td>@game.GameId</td>
-                                    <td class="text-center">@game.DateBeginning</td>
-                                    <td class="text-center">@game.DateEnding</td>
+                                    <td class="text-center">@game.DateBeginning.DateTime</td>
+                                    <td class="text-center">@game.DateEnding.DateTime</td>
                                     <td class="text-center">
                                         <InputRadio Name="parentGame" Value="@game.GameId" />
                                     </td>
@@ -101,19 +103,24 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var offset = await JS.InvokeAsync<int>("getAppTimeZone");
+        newGame.TimeOffset = offset;
+
         var token = await AuthService.GetHttpClientToken();
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
         try
         {
-            userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/lastGamesToJoin");
+            await GetListLastGamesToJoin();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            //TODO запис в лог, а не на консоль
+            Console.WriteLine("Request to get user's games list has been empty or request give back not success status code");
             userGames = new List<GameDTO>();
         }
         finally
         {
-            if (userGames.Count() == 0)
+            if (userGames?.Count() == 0)
             {
                 childGamesExist = false;
                 newGame.GameType = GameType.Parrent;
@@ -137,8 +144,8 @@
             var selectGame = userGames?.FirstOrDefault(x => x.GameId == newGame.ParentGame);
             if (selectGame != null && selectGame != default(GameDTO))
             {
-                newGame.DateBeginning = selectGame!.DateBeginning;
-                newGame.DateEnding = selectGame!.DateEnding;
+                newGame.DateBeginning = selectGame!.DateBeginning.UtcDateTime;
+                newGame.DateEnding = selectGame!.DateEnding.UtcDateTime;
             }
         }
         else if (newGame.GameType == GameType.NotSet)
@@ -159,7 +166,7 @@
             else
             {
                 //TODO: додати логування і виводити дані в лог, а не консоль
-                var errorMessage = "Помилка при створенні нової гри" ;
+                var errorMessage = "Помилка при створенні нової гри";
                 ChangeGameOutMessage(errorMessage);
                 Console.WriteLine(await response.Content.ReadAsStringAsync());
                 StateHasChanged();
@@ -189,24 +196,42 @@
         messageForEndGame = message;
     }
 
-    private void SetDateGameStarted(DateTime dateStarted)
+    private async Task SetDateGameStarted(DateTime dateStarted)
     {
         newGame.DateBeginning = dateStarted;
         newGame.DateEnding = newGame.DateBeginning.AddHours(3);
         ChangeGameOutMessage("End date of game has updated!");
-        StateHasChanged();
+
+        await GetListLastGamesToJoin();
     }
 
-    private void SetDateGameEnded(DateTime dateEnded)
+    private async Task SetDateGameEnded(DateTime dateEnded)
     {
-        if (dateEnded.AddHours(10) > newGame.DateBeginning)
+        if (dateEnded.AddHours(3) >= newGame.DateBeginning)
         {
             newGame.DateEnding = dateEnded;
+
+            await GetListLastGamesToJoin();
         }
         else
         {
             ChangeGameOutMessage("Selected end date of game not valid!");
         }
-        StateHasChanged();
+
+    }
+
+    private async Task GetListLastGamesToJoin()
+    {
+        //TODO: працює дуже повільно!!!
+        var startDate = newGame.DateBeginning.ToString(CultureInfo.InvariantCulture);
+        var endDate = newGame.DateEnding.ToString(CultureInfo.InvariantCulture);
+        userGames = await Http.GetFromJsonAsync<List<GameDTO>>(
+            $"api/game/lastGamesToJoin?DateBeginning={startDate}&DateEnding={endDate}&Offset={newGame.TimeOffset}");
+        
+        if (userGames?.Count() > 0)
+        {
+            childGamesExist = true;
+            StateHasChanged();
+        }
     }
 }

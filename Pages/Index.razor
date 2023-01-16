@@ -104,9 +104,12 @@
     public int SelectedIdForNextStepToEmbodiment { get; set; }
     private Chat? chat = new();
     private bool _disposed = false;
+    private int offset = 0;
 
     protected override async Task OnInitializedAsync()
     {
+        offset = await JSRuntime.InvokeAsync<int>("getAppTimeZone");
+
         var token = await AuthService.GetHttpClientToken();
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
 
@@ -273,7 +276,12 @@
     private async Task EndTheGame()
     {
         ChangeGameOutMessage("");
-        var response = await Http.PostAsJsonAsync<int>($"api/Game/finish", GameId!.Value);
+        var response = await Http.PostAsJsonAsync<EndGameDTO>($"api/Game/finish", new EndGameDTO()
+            {
+                GameId = GameId!.Value,
+                Offset = offset
+            });
+
         if (response.IsSuccessStatusCode)
         {
             var result = await response.Content.ReadFromJsonAsync<string>();
