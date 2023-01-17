@@ -41,6 +41,8 @@
     public bool GameFinished { get; set; } = false;
 
 
+    //UNDONE: Додати перевірку статусу http-запитів, якщо відповідь з кодом 401, видаляти з локального сховища запис і направляти на сторінку авторизації
+
     protected override async Task OnInitializedAsync()
     {
         logger = LoggerFactory.CreateLogger<Chat>();

@@ -4,6 +4,8 @@
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
 @inject ILoggerFactory LoggerFactory
+@inject IGameRepository GameRepository 
+@inject HttpInterceptorService Interceptor
 @attribute [Authorize(Roles = "User")]
 <h3>Home</h3>
 
@@ -105,6 +107,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Interceptor.RegisterEvent();
         logger = LoggerFactory.CreateLogger<Home>();
 
         var offset = await JS.InvokeAsync<int>("getAppTimeZone");
@@ -160,22 +163,17 @@
         OracleDTO? oracle = default;
         try
         {
-            var response = await Http.PostAsJsonAsync<NewUserGame>($"api/Game/new", newGame);
-            if (response.IsSuccessStatusCode)
-            {
-                oracle = await response.Content.ReadFromJsonAsync<OracleDTO>();
-                NavManager.NavigateTo($"/newGame/{oracle!.GameId}");
-            }
-            else
-            {
-                var errorMessage = "Помилка при створенні нової гри";
-                ChangeGameOutMessage(errorMessage);
-                logger.LogWarning(await response.Content.ReadAsStringAsync());
-                StateHasChanged();
-            }
+            oracle = await GameRepository.CreateNewGame(newGame);  
+            NavManager.NavigateTo($"/newGame/{oracle!.GameId}");
         }
         catch (Exception ex)
         {
+            if (oracle == default)
+            {
+                var errorMessage = "Помилка при створенні нової гри";
+                ChangeGameOutMessage(errorMessage);
+                StateHasChanged();
+            }
             logger.LogWarning(ex.Message);
         }
     }
@@ -224,16 +222,13 @@
 
     private async Task GetListLastGamesToJoin()
     {
-        //TODO: працює дуже повільно!!!
-        var startDate = newGame.DateBeginning.ToString(CultureInfo.InvariantCulture);
-        var endDate = newGame.DateEnding.ToString(CultureInfo.InvariantCulture);
-        userGames = await Http.GetFromJsonAsync<List<GameDTO>>(
-            $"api/game/lastGamesToJoin?DateBeginning={startDate}&DateEnding={endDate}&Offset={newGame.TimeOffset}");
-        
+        userGames = await GameRepository.GetLastGamesToJoin(newGame.DateBeginning, newGame.DateEnding, newGame.TimeOffset);
         if (userGames?.Count() > 0)
         {
             childGamesExist = true;
             StateHasChanged();
         }
     }
+
+    public void Dispose() => Interceptor.DisposeEvent();
 }

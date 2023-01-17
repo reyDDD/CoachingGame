@@ -1,6 +1,7 @@
 ﻿@page "/login"
 @inject IAuthService authService
 @inject NavigationManager navigationManager
+@inject HttpInterceptorService Interceptor
 
 <h1>Login</h1>
 
@@ -39,6 +40,12 @@
     private bool ShowErrors;
     private string? Error = String.Empty;
 
+    protected override async Task OnInitializedAsync()
+    {
+        Interceptor.RegisterEvent();
+        await base.OnInitializedAsync();
+    }
+
     private async Task HandleLogin()
     {
         ShowErrors = false;
@@ -56,4 +63,5 @@
         }
     }
 
+    public void Dispose() => Interceptor.DisposeEvent();
 }

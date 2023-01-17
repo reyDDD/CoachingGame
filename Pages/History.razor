@@ -44,6 +44,9 @@ else if (userGames.Count() > 0)
     private ILogger<History> logger = null!;
     private IEnumerable<GameDTO>? userGames;
 
+
+    //UNDONE: Додати перевірку статусу http-запитів, якщо відповідь з кодом 401, видаляти з локального сховища запис і направляти на сторінку авторизації
+
     protected override async Task OnInitializedAsync()
     {
         logger = LoggerFactory.CreateLogger<History>();
