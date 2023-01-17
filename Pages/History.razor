@@ -2,7 +2,7 @@
 @inject IAuthService AuthService
 @attribute [Authorize(Roles = "User")]
 @inject AuthenticationStateProvider AuthenticationStateProvider
-
+@inject ILoggerFactory LoggerFactory
 
 <PageTitle>Games history for user @(async () => await GetUserEmail())</PageTitle>
 
@@ -41,10 +41,12 @@ else if (userGames.Count() > 0)
 
 @code
 {
+    private ILogger<History> logger = null!;
     private IEnumerable<GameDTO>? userGames;
 
     protected override async Task OnInitializedAsync()
     {
+        logger = LoggerFactory.CreateLogger<History>();
         try
         {
             var token = await AuthService.GetHttpClientToken();
@@ -53,7 +55,7 @@ else if (userGames.Count() > 0)
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            logger.LogWarning(ex.Message);
             userGames = new List<GameDTO>();
         }
         await base.OnInitializedAsync();

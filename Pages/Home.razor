@@ -3,6 +3,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
+@inject ILoggerFactory LoggerFactory
 @attribute [Authorize(Roles = "User")]
 <h3>Home</h3>
 
@@ -90,6 +91,7 @@
 
 
 @code {
+    private ILogger<Home> logger = null!;
     private string messageForEndGame = String.Empty;
     private IEnumerable<GameDTO>? userGames;
     private bool childGamesExist = true;
@@ -103,6 +105,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        logger = LoggerFactory.CreateLogger<Home>();
+
         var offset = await JS.InvokeAsync<int>("getAppTimeZone");
         newGame.TimeOffset = offset;
 
@@ -114,8 +118,7 @@
         }
         catch (Exception ex)
         {
-            //TODO запис в лог, а не на консоль
-            Console.WriteLine("Request to get user's games list has been empty or request give back not success status code");
+            logger.LogInformation("Request to get user's games list has been empty or request give back not success status code");
             userGames = new List<GameDTO>();
         }
         finally
@@ -165,16 +168,15 @@
             }
             else
             {
-                //TODO: додати логування і виводити дані в лог, а не консоль
                 var errorMessage = "Помилка при створенні нової гри";
                 ChangeGameOutMessage(errorMessage);
-                Console.WriteLine(await response.Content.ReadAsStringAsync());
+                logger.LogWarning(await response.Content.ReadAsStringAsync());
                 StateHasChanged();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
+            logger.LogWarning(ex.Message);
         }
     }
 

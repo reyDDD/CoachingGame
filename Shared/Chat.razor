@@ -2,6 +2,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject IAuthService AuthService
+@inject ILoggerFactory LoggerFactory
 @attribute [Authorize(Roles = "User")]
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Net.Http.Json
@@ -28,6 +29,7 @@
 </ul>
 
 @code {
+    private ILogger<Chat> logger = null!;
     private HubConnection? hubConnection;
     private List<string> logLines = new List<string>();
     private string? messageInput;
@@ -41,6 +43,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        logger = LoggerFactory.CreateLogger<Chat>();
+
         token = await AuthService.GetHttpClientToken();
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
         logLines = await Http.GetFromJsonAsync<List<string>>($"api/GameLog/info?GameId={RoomName}");
@@ -116,8 +120,7 @@
         }
         catch (Exception ex)
         {
-            //TODO додавати інформацію в лог, а не на консоль
-            Console.WriteLine(ex.Message);
+            logger.LogWarning(ex.Message);
         }
         
     }
