@@ -9,6 +9,7 @@
 @inject IHttpClientFactory ClientFactory
 @inject IAuthService AuthService
 @inject ILoggerFactory LoggerFactory
+@inject IGameRepository GameRepo
 @attribute [Authorize(Roles = "User")]
 
 <div style="margin: auto;width: 990px; height:500px;background-image: url(@(pathToImage));" id="baseImage"></div>
@@ -108,17 +109,10 @@
     private ILogger<Index> logger = null!;
 
 
-    
-//UNDONE: Додати перевірку статусу http-запитів, якщо відповідь з кодом 401, видаляти з локального сховища запис і направляти на сторінку авторизації
-
-
     protected override async Task OnInitializedAsync()
     {
         logger = LoggerFactory.CreateLogger<Index>();
         offset = await JSRuntime.InvokeAsync<int>("getAppTimeZone");
-
-        var token = await AuthService.GetHttpClientToken();
-        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
 
         if (GameId.HasValue && GameId > 0)
         {
@@ -135,7 +129,7 @@
         GameDTO? game = null;
         try
         {
-            game = await Http.GetFromJsonAsync<GameDTO>($"api/Game/info?gameId={GameId}");
+            game = await GameRepo.GetGameInfo(GameId!.Value);
         }
         catch (Exception ex)
         {
@@ -156,7 +150,7 @@
     {
         try
         {
-            return await Http.GetFromJsonAsync<bool>($"api/Game/status/{GameId}");
+            return await GameRepo.GetGameStatus(GameId);
         }
         catch (Exception ex)
         {
@@ -173,11 +167,10 @@
                 GameId = GameId!.Value,
                 ActionType = ActionType.RandomAction
             };
-        var response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
 
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var result = await response.Content.ReadFromJsonAsync<GameDTO>();
+            var result = await GameRepo.Move(model);
 
             RegionOnMap = result!.ActualPosition!.RegionOnMap;
             PositionNumber = result!.ActualPosition!.PositionNumber;
@@ -191,7 +184,7 @@
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
         }
-        else
+        catch
         {
             ChangeGameOutMessage("Помилка при виконанні команди");
         }
@@ -211,10 +204,9 @@
         SelectedIdForNextStepToEmbodiment = 0;
         ActualPositionsForSelect = new();
 
-        HttpResponseMessage response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var result = await response.Content.ReadFromJsonAsync<GameDTO>();
+            var result = await GameRepo.Move(model);
 
             RegionOnMap = result!.ActualPosition!.RegionOnMap;
             PositionNumber = result!.ActualPosition!.PositionNumber;
@@ -228,6 +220,11 @@
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
         }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex.Message);
+            ChangeGameOutMessage("Помилка при виконанні команди");
+        }
     }
 
     private async Task GoToNewPosition()
@@ -239,10 +236,9 @@
                 ActionType = ActionType.NewStep
             };
 
-        HttpResponseMessage response = await Http.PostAsJsonAsync<MoveModel>($"api/Game/move", model);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var result = await response.Content.ReadFromJsonAsync<GameDTO>();
+            var result = await GameRepo.Move(model);
 
             RegionOnMap = result!.ActualPosition!.RegionOnMap;
             PositionNumber = result!.ActualPosition!.PositionNumber;
@@ -256,8 +252,9 @@
             await MoveFigure(new GamePosition(result.Coordinates.x, result.Coordinates.y, pathToImage));
             await GetLog();
         }
-        else
+        catch (Exception ex)
         {
+            logger.LogWarning(ex.Message);
             ChangeGameOutMessage("Помилка при виконанні команди");
         }
     }
@@ -275,26 +272,36 @@
 
     private async Task GetLog()
     {
-        if (GameId.HasValue && GameId > 0)
+        try
         {
-            logLines = await Http.GetFromJsonAsync<GameLogDTO>($"api/Game/log/{GameId}") ?? new();
+            logLines = await GameRepo.GetGameLog(GameId) ?? new();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex.Message);
+            logLines = new();
         }
     }
 
     private async Task EndTheGame()
     {
         ChangeGameOutMessage("");
-        var response = await Http.PostAsJsonAsync<EndGameDTO>($"api/Game/finish", new EndGameDTO()
+
+        var gameDTO = new EndGameDTO()
             {
                 GameId = GameId!.Value,
                 Offset = offset
-            });
+            };
 
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var result = await response.Content.ReadFromJsonAsync<string>();
+            var result = await GameRepo.Finish(gameDTO);
             ChangeGameOutMessage(result!);
             gameFinished = true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex.Message);
         }
         await GetLog();
     }

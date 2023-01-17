@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "User")]
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILoggerFactory LoggerFactory
+@inject IGameRepository GameRepo
 
 <PageTitle>Games history for user @(async () => await GetUserEmail())</PageTitle>
 
@@ -44,17 +45,12 @@ else if (userGames.Count() > 0)
     private ILogger<History> logger = null!;
     private IEnumerable<GameDTO>? userGames;
 
-
-    //UNDONE: Додати перевірку статусу http-запитів, якщо відповідь з кодом 401, видаляти з локального сховища запис і направляти на сторінку авторизації
-
     protected override async Task OnInitializedAsync()
     {
         logger = LoggerFactory.CreateLogger<History>();
         try
         {
-            var token = await AuthService.GetHttpClientToken();
-            Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
-            userGames = await Http.GetFromJsonAsync<List<GameDTO>>("api/game/gamesInfo");
+            userGames = await GameRepo.GetListGamesInfo();
         }
         catch (Exception ex)
         {

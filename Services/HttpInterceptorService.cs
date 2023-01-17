@@ -37,7 +37,7 @@ namespace Tamboliya.Services
                 {
                     case HttpStatusCode.Unauthorized:
                         ((ApiAuthenticationStateProvider)authenticationStateProvider).MarkUserAsLoggedOut();
-                        _navManager.NavigateTo("/authentication/login");
+                        _navManager.NavigateTo("/Login");
                         message = "User is not authorized";
                         _logger.LogWarning("User is not authorized: " + e.Response.ReasonPhrase + " to URI " + e.Request.RequestUri);
                         break;

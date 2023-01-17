@@ -19,6 +19,7 @@ builder.Services.AddScoped<HttpInterceptorService>();
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
+builder.Services.AddScoped<IGameLogRepository, GameLogRepository>();
 
 
 

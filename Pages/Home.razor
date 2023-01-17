@@ -113,8 +113,6 @@
         var offset = await JS.InvokeAsync<int>("getAppTimeZone");
         newGame.TimeOffset = offset;
 
-        var token = await AuthService.GetHttpClientToken();
-        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
         try
         {
             await GetListLastGamesToJoin();

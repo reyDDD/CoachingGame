@@ -3,6 +3,7 @@
 @inject NavigationManager NavigationManager
 @inject IAuthService AuthService
 @inject ILoggerFactory LoggerFactory
+@inject IGameLogRepository GameLogRepo
 @attribute [Authorize(Roles = "User")]
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Net.Http.Json
@@ -41,19 +42,23 @@
     public bool GameFinished { get; set; } = false;
 
 
-    //UNDONE: Додати перевірку статусу http-запитів, якщо відповідь з кодом 401, видаляти з локального сховища запис і направляти на сторінку авторизації
-
     protected override async Task OnInitializedAsync()
     {
         logger = LoggerFactory.CreateLogger<Chat>();
 
-        token = await AuthService.GetHttpClientToken();
-        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
-        logLines = await Http.GetFromJsonAsync<List<string>>($"api/GameLog/info?GameId={RoomName}");
+        try
+        {
+            logLines = await GameLogRepo.GetGameLogLines(RoomName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex.Message);
+        }
 
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         userMail = state.User.Identity?.Name;
 
+        //TODO: create отдельный solution for chatHub
         hubConnection = new HubConnectionBuilder()
             .WithUrl("https://localhost:7212/chathub")
             .Build();
@@ -110,21 +115,17 @@
                 GameId = RoomName,
                 Message = message
             };
-        await Http.PostAsJsonAsync<LogLineDTOModel>($"api/GameLog/addMessageToLog", model);
 
         try
         {
-            var response = await Http.GetFromJsonAsync<List<string>>($"api/GameLog/info?GameId={RoomName}");
-            if (response != null)
-            {
-                logLines = response;
-            }
+            await GameLogRepo.AddMessageToLog(model);
+            logLines = await GameLogRepo.GetGameLogLines(RoomName);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex.Message);
         }
-        
+
     }
 
     private void OnMessageFromServer(int roomName, string message)
