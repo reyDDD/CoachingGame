@@ -50,6 +50,7 @@ else if (userGames.Count() > 0)
         logger = LoggerFactory.CreateLogger<History>();
         try
         {
+            //TODO: перелік ігор кешується. Якщо зайти під іншим користувачем, буде список його ігор. Виправити
             userGames = await GameRepo.GetListGamesInfo();
         }
         catch (Exception ex)

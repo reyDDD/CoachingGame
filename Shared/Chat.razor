@@ -102,6 +102,7 @@
         if (hubConnection is not null)
         {
             await hubConnection.SendAsync("LeaveRoom", RoomName, userMail);
+            await hubConnection.StopAsync();
             await hubConnection.DisposeAsync();
         }
     }
@@ -118,6 +119,7 @@
 
         try
         {
+            //TODO: якщо гра закінчена, заборонити користувачеві додавати нові записи в лог, а також записи про приєднання до гри
             await GameLogRepo.AddMessageToLog(model);
             logLines = await GameLogRepo.GetGameLogLines(RoomName);
         }

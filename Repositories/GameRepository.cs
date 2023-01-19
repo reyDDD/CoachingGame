@@ -4,16 +4,21 @@ using System.Net.Http.Json;
 using System.Globalization;
 using static System.Net.WebRequestMethods;
 using System.Reflection;
+using System.Net.Http.Headers;
+using Tamboliya.Services;
 
 namespace Tamboliya.Repositories
 {
     public class GameRepository : IGameRepository
     {
         private readonly HttpClient _http;
+        private readonly IAuthService _authService;
 
-        public GameRepository(HttpClient http)
+        public GameRepository(HttpClient http, IAuthService authService)
         {
             _http = http;
+            _authService = authService;
+            Task.Run(async () => await GetToken());
         }
 
         public async Task<OracleDTO> CreateNewGame(NewUserGame userGame)
@@ -81,6 +86,12 @@ namespace Tamboliya.Repositories
                 return (await response.Content.ReadFromJsonAsync<GameDTO>())!;
             }
             throw new InvalidOperationException("Перехід на нову позицію не виконано");
+        }
+
+        private async Task GetToken()
+        {
+            var token = await _authService.GetHttpClientToken();
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
         }
     }
 }
