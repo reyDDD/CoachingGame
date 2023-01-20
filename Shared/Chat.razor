@@ -60,7 +60,7 @@
 
         //TODO: create отдельный solution for chatHub
         hubConnection = new HubConnectionBuilder()
-            .WithUrl("https://localhost:7212/chathub")
+            .WithUrl("https://localhost:7127/chathub")
             .Build();
 
         hubConnection.On<int, string>("ReceiveMessage", (RoomName, message) =>
