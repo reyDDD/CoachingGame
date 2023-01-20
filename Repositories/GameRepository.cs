@@ -17,8 +17,8 @@ namespace Tamboliya.Repositories
         public GameRepository(HttpClient http, IAuthService authService)
         {
             _http = http;
-            _authService = authService;
             Task.Run(async () => await GetToken());
+            _authService = authService;
         }
 
         public async Task<OracleDTO> CreateNewGame(NewUserGame userGame)
