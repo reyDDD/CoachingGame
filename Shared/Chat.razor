@@ -4,12 +4,17 @@
 @inject IAuthService AuthService
 @inject ILoggerFactory LoggerFactory
 @inject IGameLogRepository GameLogRepo
+@inject IGameRepository GameRepo
+@inject IConfiguration Config;
 @attribute [Authorize(Roles = "User")]
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Net.Http.Json
+@using Microsoft.Extensions.Configuration
 
 
 <PageTitle>Chat component</PageTitle>
+<Rtc ParentGameId="@_parentGameId" />
+
 @if (!GameFinished)
 {
     <div class="form-group">
@@ -18,7 +23,7 @@
             <input @bind="messageInput" type="text" />
         </label>
     </div>
-    <button @onclick="Send" disabled="@(!IsConnected)">Send</button>
+    <button @onclick="SendTextMessage" disabled="@(!IsConnected)">Send</button>
 }
 <hr>
 
@@ -36,8 +41,12 @@
     private string? messageInput;
     private string? userMail;
     private string? token = null;
+
     [Parameter]
-    public int RoomName { get; set; }
+    public int GameId { get; set; }
+
+    private string _parentGameId = String.Empty;
+
     [Parameter]
     public bool GameFinished { get; set; } = false;
 
@@ -45,10 +54,11 @@
     protected override async Task OnInitializedAsync()
     {
         logger = LoggerFactory.CreateLogger<Chat>();
+        _parentGameId = (await GameRepo.GetParentGameId(GameId)).ToString();
 
         try
         {
-            logLines = await GameLogRepo.GetGameLogLines(RoomName);
+            logLines = await GameLogRepo.GetGameLogLines(GameId);
         }
         catch (Exception ex)
         {
@@ -58,39 +68,41 @@
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         userMail = state.User.Identity?.Name;
 
-        //TODO: create отдельный solution for chatHub
+
+        var chatHubUrl = Config[SolutionPathes.HubUrl];
         hubConnection = new HubConnectionBuilder()
-            .WithUrl("https://localhost:7127/chathub")
+            .WithUrl(chatHubUrl!)
             .Build();
 
-        hubConnection.On<int, string>("ReceiveMessage", (RoomName, message) =>
+        hubConnection.On<int, string>("ReceiveMessage", async (RoomName, message) =>
         {
-            OnMessageFromServer(RoomName, message);
+            await OnMessageFromServer(RoomName, message);
             StateHasChanged();
-        });
 
+        });
 
         await hubConnection.StartAsync();
         StateHasChanged();
         await ConnectToRoom();
 
         await base.OnInitializedAsync();
+
     }
 
-    private async Task Send()
+    private async Task SendTextMessage()
     {
         if (hubConnection is not null)
         {
-            await hubConnection.SendAsync("SendMessageToGroup", RoomName, messageInput, userMail);
+            await hubConnection.SendAsync("SendMessageToGroup", GameId, messageInput, userMail);
             messageInput = String.Empty;
         }
     }
 
     private async Task ConnectToRoom()
     {
-        if (hubConnection is not null && RoomName != 0)
+        if (hubConnection is not null && GameId != 0)
         {
-            await hubConnection.SendAsync("JoinRoom", RoomName, userMail);
+            await hubConnection.SendAsync("JoinRoom", GameId, userMail);
         }
     }
 
@@ -101,7 +113,7 @@
     {
         if (hubConnection is not null)
         {
-            await hubConnection.SendAsync("LeaveRoom", RoomName, userMail);
+            await hubConnection.SendAsync("LeaveRoom", GameId, userMail);
             await hubConnection.StopAsync();
             await hubConnection.DisposeAsync();
         }
@@ -113,7 +125,7 @@
     {
         LogLineDTOModel model = new()
             {
-                GameId = RoomName,
+                GameId = GameId,
                 Message = message
             };
 
@@ -121,7 +133,7 @@
         {
             //TODO: якщо гра закінчена, заборонити користувачеві додавати нові записи в лог, а також записи про приєднання до гри
             await GameLogRepo.AddMessageToLog(model);
-            logLines = await GameLogRepo.GetGameLogLines(RoomName);
+            logLines = await GameLogRepo.GetGameLogLines(GameId);
         }
         catch (Exception ex)
         {
@@ -130,13 +142,10 @@
 
     }
 
-    private void OnMessageFromServer(int roomName, string message)
+    private async Task OnMessageFromServer(int roomName, string message)
     {
-        Task.Run(async () =>
-        {
-            var encodedMsg = $"{message} to room #{RoomName}";
-            await AddNewMessageToChatLog(encodedMsg);
-            StateHasChanged();
-        });
+        var encodedMsg = $"{message} to room #{GameId}";
+        await AddNewMessageToChatLog(encodedMsg);
+        StateHasChanged();
     }
 }

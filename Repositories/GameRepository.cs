@@ -88,6 +88,12 @@ namespace Tamboliya.Repositories
             throw new InvalidOperationException("Перехід на нову позицію не виконано");
         }
 
+
+        public async Task<int> GetParentGameId(int gameId)
+        {
+            return (await _http.GetFromJsonAsync<int>($"api/Game/parentGameId/{gameId}"))!;
+        }
+
         private async Task GetToken()
         {
             var token = await _authService.GetHttpClientToken();

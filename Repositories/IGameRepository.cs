@@ -13,5 +13,6 @@ namespace Tamboliya.Repositories
         Task<GameDTO> Move(MoveModel moveModel);
         Task<GameLogDTO> GetGameLog(int? gameId);
         Task<string> Finish(EndGameDTO game);
+        Task<int> GetParentGameId(int gameId);
     }
 }

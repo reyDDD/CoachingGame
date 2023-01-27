@@ -25,7 +25,7 @@ namespace Tamboliya.Services
         }
 
         public void RegisterEvent() => _interceptor.AfterSend += InterceptResponse!;
-
+        //TODO: после авторизации приложение не перезагружается и пишет, что пользователь не авторизовался
         private void InterceptResponse(object sender, HttpClientInterceptorEventArgs e)
         {
             string message = string.Empty;
