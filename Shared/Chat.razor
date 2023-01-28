@@ -13,10 +13,10 @@
 
 
 <PageTitle>Chat component</PageTitle>
-<Rtc ParentGameId="@_parentGameId" />
 
 @if (!GameFinished)
 {
+    <Rtc ParentGameId="@_parentGameId" />
     <div class="form-group">
         <label>
             Message:
@@ -68,23 +68,24 @@
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         userMail = state.User.Identity?.Name;
 
-
-        var chatHubUrl = Config[SolutionPathes.HubUrl];
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(chatHubUrl!)
-            .Build();
-
-        hubConnection.On<int, string>("ReceiveMessage", async (RoomName, message) =>
+        if (!GameFinished)
         {
-            await OnMessageFromServer(RoomName, message);
+            var chatHubUrl = Config[SolutionPathes.HubUrl];
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(chatHubUrl!)
+                .Build();
+
+            hubConnection.On<int, string>("ReceiveMessage", async (RoomName, message) =>
+            {
+                await OnMessageFromServer(RoomName, message);
+                StateHasChanged();
+
+            });
+
+            await hubConnection.StartAsync();
             StateHasChanged();
-
-        });
-
-        await hubConnection.StartAsync();
-        StateHasChanged();
-        await ConnectToRoom();
-
+            await ConnectToRoom();
+        }
         await base.OnInitializedAsync();
 
     }
