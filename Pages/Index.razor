@@ -68,11 +68,9 @@
     }
     else
     {
+        <Chat GameId="@GameId.Value" GameFinished="gameFinished" @ref="@chat" />
         <div style="display:flex;">
-            <div style="width:50%; max-height:600px; overflow-y:scroll;">
-                <Chat GameId="@GameId.Value" GameFinished="gameFinished" @ref="@chat" />
-            </div>
-            <div style="width:50%; display:flex; max-height:600px; overflow-y:scroll;">
+            <div style="width:100%; display:flex; max-height:600px; overflow-y:scroll;">
                 <table class="table">
                     <tbody>
                         @foreach (var line in logLines?.Messages!)
