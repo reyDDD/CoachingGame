@@ -1,5 +1,5 @@
 ﻿const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
+const remoteVideoContainer = document.getElementById('streams__container');
 
 export function setLocalStream(stream) {
     console.log("setLocalStream");
@@ -7,8 +7,23 @@ export function setLocalStream(stream) {
 }
 
 export function setRemoteStream(stream) {
-    console.log("setRemoteStream");
-    remoteVideo.srcObject = stream;
+    try {
+        document.getElementById(`remoteVideo-${stream[0].id}`);
+        let video = document.getElementById(`remoteVideo-${stream[0].id}`);
+        if (video === null) {
+            let videoBlock = `<div class="video__container video-player" id="user-container-${stream[0].id}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; display: flex; justify-content: center; align-items: center; border: 2px solid #b366f9; border-radius: 50%; cursor: pointer; overflow: hidden;"><video class="video-player" id="remoteVideo-${stream[0].id}" autoplay playsinline></video></div>`;
+            remoteVideoContainer.insertAdjacentHTML("beforeend", videoBlock);
+            video = document.getElementById(`remoteVideo-${stream[0].id}`);
+            video.srcObject = stream[0];
+        }
+        else {
+            video.srcObject = stream[0];
+        }
+        console.log(`setRemoteStream for ${stream[0].id}`);
+    }
+    catch (err) {
+        console.log(err);
+    }
 }
 
 export function stopLocalStream() {
@@ -19,20 +34,20 @@ export function stopLocalStream() {
 }
 
 export function stopRemoteStream() {
-    if (remoteVideo.srcObject) {
-        remoteVideo.srcObject.getTracks().forEach((track) => track.stop());
+    if (remoteVideoContainer.srcObject) {
+        remoteVideoContainer.srcObject.getTracks().forEach((track) => track.stop());
         console.log("stop remote streams");
     }
 }
 
 export function showBlockRemoteVideo() {
-    remoteVideo.style.display = 'block';
-    localVideo.classList.add('smallFrame');
+    //remoteVideoContainer.style.display = 'block';
+    //localVideo.classList.add('smallFrame');
 }
 
 export function hideBlockRemoteVideo() {
-    remoteVideo.style.display = 'none';
-    localVideo.classList.remove('smallFrame');
+    //remoteVideoContainer.style.display = 'none';
+    //localVideo.classList.remove('smallFrame');
 }
 
 

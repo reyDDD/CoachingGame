@@ -2,10 +2,13 @@
 // Set up media stream constant and parameters.
 const mediaStreamConstraints = {
     video: {
-        width: { min: 640, ideal: 1920, max: 1920 },
-        height: { min: 480, ideal: 1080, max: 1080 }
+        //width: { min: 640, ideal: 1920, max: 1920 },
+        //height: { min: 480, ideal: 1080, max: 1080 }
+        width: { min: 320, ideal: 320, max: 320 },
+        height: { min: 240, ideal: 240, max: 240 }
     },
-    audio: true
+    //audio: true
+    audio: false
 };
 
 // Set up to exchange only video.
@@ -27,7 +30,7 @@ const servers = {
 
 let dotNet;
 let localStream;
-let remoteStream;
+let remoteStream = [];
 let peerConnection;
 
 let isOffering;
@@ -203,17 +206,13 @@ export function hangupAction() {
     }
 }
 
-//...................................
-//UNDONE: тут ошибка - возвращает локальный стрим, а не стрим подключившегося пользователя
-//...................................
-
 
 // Handles remote MediaStream success by handing the stream to the blazor component.
 async function gotRemoteMediaStream(event) {
 
     const mediaStream = event.stream;
     console.log(mediaStream);
-    remoteStream = mediaStream;
+    remoteStream.push(mediaStream);
 
     //remoteStream = new MediaStream();
     //event.streams[1].getTracks().forEach((track) => {
