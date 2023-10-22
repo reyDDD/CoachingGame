@@ -120,7 +120,7 @@
         if (_module == null)
             throw new InvalidOperationException();
         await _module.InvokeVoidAsync("setRemoteStream", e);
-        await _module.InvokeVoidAsync("addEventListenerForVideoFrames");
+        await _module.InvokeVoidAsync("showBlockRemoteVideo");
         StateHasChanged();
     }
 
