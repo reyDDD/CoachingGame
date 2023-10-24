@@ -13,9 +13,9 @@
 
     <div id="streams__container">
 
-        <div class="video__container video-player" id="user-container-localVideo">
+        @* <div class="video__container video-player" id="user-container-localVideo">
                 <video id="localVideo" autoplay playsinline muted></video>
-        </div>
+        </div> *@
 
         @*
         <div class="video__container video-player" id="user-container-2"
@@ -111,7 +111,7 @@
         RtcService.OnRemoteStreamAcquired += RtcOnRemoteStreamAcquired;
         await RtcService.Join(ParentGameId);
         var stream = await RtcService.StartLocalStream();
-        await _module.InvokeVoidAsync("setLocalStream", stream);
+        await _module.InvokeVoidAsync("setLocalStream", stream, GameId);
         _callDisabled = true;
     }
 

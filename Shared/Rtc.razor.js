@@ -1,36 +1,64 @@
-﻿const localVideo = document.getElementById('localVideo');
+﻿let localVideoId = null;
 const remoteVideoContainer = document.getElementById('streams__container');
 
-export function setLocalStream(stream) {
-    console.log("setLocalStream");
-    localVideo.srcObject = stream;
+export function setLocalStream(stream, gameId) {
+    try {
+        document.getElementById(`remoteVideo-${gameId}`);
+        let video = document.getElementById(`remoteVideo-${gameId}`);
+        if (video === null) {
+            let player = `<div class="video__container video-player" id="user-container-${gameId}"><video class="video-player" id="remoteVideo-${gameId}" autoplay playsinline></video></div>`;
+            remoteVideoContainer.insertAdjacentHTML("beforeend", player);
+            video = document.getElementById(`remoteVideo-${gameId}`);
+            video.style.width = '200px';
+            video.style.height = '200px';
+            video.style.borderRadius = '50%';
+            video.style.objectFit = 'cover';
+            video.style.display = 'flex';
+            video.style.justifyContent = 'center';
+            video.style.alignItems = 'center';
+            video.style.border = '2px solid #b366f9';
+            video.style.cursor = 'pointer';
+            video.style.overflow = 'hidden';
+            video.srcObject = stream;
+        }
+        else {
+            video.srcObject = stream;
+        }
+        console.log("setLocalStream");
+        localVideoId = gameId;
+    }
+    catch (err) {
+        console.error(err);
+    }
 }
 
 export function setRemoteStream(stream) {
-    try {
-        document.getElementById(`remoteVideo-${stream[0].id}`);
-        let video = document.getElementById(`remoteVideo-${stream[0].id}`);
-        if (video === null) {
-            let videoBlock = `<div class="video__container video-player" id="user-container-${stream[0].id}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; display: flex; justify-content: center; align-items: center; border: 2px solid #b366f9; cursor: pointer; overflow: hidden;"><video class="video-player" id="remoteVideo-${stream[0].id}" autoplay playsinline></video></div>`;
-            remoteVideoContainer.insertAdjacentHTML("beforeend", videoBlock);
-            video = document.getElementById(`remoteVideo-${stream[0].id}`);
-            video.srcObject = stream[0];
+    for (let i = 0; i < stream.length; i++) {
+        try {
+            document.getElementById(`remoteVideo-${stream[i].id}`);
+            let video = document.getElementById(`remoteVideo-${stream[i].id}`);
+            if (video === null) {
+                let videoBlock = `<div class="video__container video-player" id="user-container-${stream[i].id}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; display: flex; justify-content: center; align-items: center; border: 2px solid #b366f9; cursor: pointer; overflow: hidden;"><video class="video-player" id="remoteVideo-${stream[i].id}" autoplay playsinline></video></div>`;
+                remoteVideoContainer.insertAdjacentHTML("beforeend", videoBlock);
+                video = document.getElementById(`remoteVideo-${stream[i].id}`);
+                video.srcObject = stream[i];
+            }
+            else {
+                video.srcObject = stream[i];
+            }
+            console.log(`setRemoteStream for ${stream[i].id}`);
         }
-        else {
-            video.srcObject = stream[0];
+        catch (err) {
+            console.error(err);
         }
-        console.log(`setRemoteStream for ${stream[0].id}`);
-    }
-    catch (err) {
-        console.log(err);
     }
 }
 
 export function stopLocalStream() {
-    if (localVideo.srcObject) {
-        localVideo.srcObject.getTracks().forEach((track) => track.stop());
-        console.log("stop local stream");
-    }
+    //if (localVideo.srcObject) {
+    //    localVideo.srcObject.getTracks().forEach((track) => track.stop());
+    //    console.log("stop local stream");
+    //}
 }
 
 export function stopRemoteStream() {

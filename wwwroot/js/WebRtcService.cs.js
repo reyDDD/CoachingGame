@@ -29,12 +29,12 @@ const servers = {
 }
 
 let dotNet;
-let localStream;
+let localStream = null;
 let remoteStream = [];
 let peerConnection;
 
-let isOffering;
-let isOffered;
+let isOfferin = false;
+let isOffered = false;
 
 export function initialize(dotNetRef) {
     dotNet = dotNetRef;
@@ -85,7 +85,6 @@ export async function startLocalStream() {
     console.log("Requesting local stream.");
     localStream = await navigator.mediaDevices.getUserMedia(mediaStreamConstraints);
     return localStream;
-    //return localStream.getTracks().find(track => track.kind === 'video');
 }
 
 function createPeerConnection() {
@@ -93,15 +92,10 @@ function createPeerConnection() {
         return;
 
     // Create peer connections and add behavior.
+    console.log("peerConnection createOffer start.");
     peerConnection = "hello";
     peerConnection = new RTCPeerConnection(servers);
     console.log("Created local peer connection object peerConnection.");
-
-    //localStream.getTracks()
-    //    .forEach(track =>
-    //        peerConnection.addTrack(track, localStream)
-    //    );
-
    
 
     peerConnection.addEventListener("icecandidate", handleConnection);
@@ -112,11 +106,12 @@ function createPeerConnection() {
     //peerConnection.ontrack = (event) => gotRemoteMediaStream(event); //Обрабатывает удаленный успех
     // MediaStream, передавая поток компоненту blazor.
     // peerConnection.onicecandidate = async (event) => await handleConnection(event); //срабатывает
-    // когда пользователь делает предложение и получает Ответ. Отправляет кандидатов на пиринг посредством сигнализации. 
+    // когда пользователь делает предложение и получает Ответ. Отправляет кандидатов на пиринг посредством сигнализации.
 
     // Add local stream to connection and create offer to connect.
     peerConnection.addStream(localStream);
     console.log("Added local stream to peerConnection.");
+    /*isOffered = true;*/
 }
 
 
@@ -124,14 +119,12 @@ function createPeerConnection() {
 // Create offer - send to peer - receive answer - set stream
 // Handles call button action: creates peer connection.
 export async function callAction() {
-    if (isOffered)
-        return Promise.resolve();
+    //if (isOffered)
+    //    return Promise.resolve();
 
-    isOffering = true;
+    /*isOffering = true;*/
     console.log("Starting call.");
     createPeerConnection();
-
-    console.log("peerConnection createOffer start.");
     let offerDescription = await peerConnection.createOffer(offerOptions);
     console.log(`Offer from peerConnection:\n${offerDescription.sdp}`);
     console.log("peerConnection setLocalDescription start.");
@@ -157,9 +150,9 @@ export async function processAnswer(descriptionText) {
 // in the flow above. srd triggers addStream.
 export async function processOffer(descriptionText) {
     console.log("processOffer");
-    if (isOffering) return;
+  /*  if (isOffering) return;*/
 
-    createPeerConnection();
+    //createPeerConnection();
     let description = JSON.parse(descriptionText);
     console.log("peerConnection setRemoteDescription start.");
     await peerConnection.setRemoteDescription(description);
@@ -214,12 +207,6 @@ async function gotRemoteMediaStream(event) {
     console.log(mediaStream);
     remoteStream.push(mediaStream);
 
-    //remoteStream = new MediaStream();
-    //event.streams[1].getTracks().forEach((track) => {
-    //    remoteStream.addTrack(track);
-    //});
-
-    //console.log(remoteStream);
     await dotNet.invokeMethodAsync("SetRemoteStream");
     console.log("Remote peer connection received remote stream.");
 }
