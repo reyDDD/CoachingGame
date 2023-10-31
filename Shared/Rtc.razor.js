@@ -51,7 +51,7 @@ export async function setRemoteStream(gameId, stream) {
         else {
             video.srcObject = stream;
         }
-        console.log(`set remote stream for gameId ${gameId} and streamId ${streams[i].id}`);
+        console.log(`set remote stream for gameId ${gameId} and streamId ${stream.id}`);
     }
     catch (err) {
         console.error(err);

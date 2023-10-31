@@ -110,7 +110,7 @@
 
         RtcService.OnRemoteStreamAcquired += RtcOnRemoteStreamAcquired;
         await RtcService.Join(ParentGameId, GameId);
-        var stream = await RtcService.StartLocalStream();
+        var stream = await RtcService.StartLocalStream(GameId.ToString());
         await _module.InvokeVoidAsync("setLocalStream", stream, GameId);
         _callDisabled = true;
     }

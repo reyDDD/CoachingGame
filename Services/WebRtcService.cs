@@ -40,10 +40,10 @@ namespace Tamboliya.Services
             await _jsModule.InvokeVoidAsync("initialize", _jsThis);
         }
 
-        public async Task<IJSObjectReference> StartLocalStream()
+        public async Task<IJSObjectReference> StartLocalStream(string gameId)
         {
             if (_jsModule == null) throw new InvalidOperationException();
-            var stream = await _jsModule.InvokeAsync<IJSObjectReference>("startLocalStream");
+            var stream = await _jsModule.InvokeAsync<IJSObjectReference>("startLocalStream", gameId);
             return stream;
         }
 
@@ -111,6 +111,7 @@ namespace Tamboliya.Services
                         await _jsModule.InvokeVoidAsync("processAnswer", payload, gameId);
                         break;
                     case "candidate":
+                        Console.WriteLine($"start metod processCandidate on server for game Id {_gameId}");
                         await _jsModule.InvokeVoidAsync("processCandidate", payload, gameId);
                         break;
                 }
@@ -147,18 +148,7 @@ namespace Tamboliya.Services
         {
             if (_jsModule == null) throw new InvalidOperationException();
             await _jsModule.InvokeAsync<At>("getRemoteStreams");
-            //OnRemoteStreamAcquired?.Invoke(this, (stream.B, stream.A));
         }
-
-
-        //[JSInvokable]
-        //public async Task HideBlockRemoteVideo()
-        //{
-        //    var _module = await _js.InvokeAsync<IJSObjectReference>(
-        //       "import", "./Shared/Rtc.razor.js");
-        //    await _module.InvokeVoidAsync("hideBlockRemoteVideo");
-        //}
-
 
         [JSInvokable]
         public async Task RemoteStreamCallBack(At removeStream)
