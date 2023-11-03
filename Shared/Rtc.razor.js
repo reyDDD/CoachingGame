@@ -1,15 +1,16 @@
-﻿let localVideoId = null;
+﻿let localVideoId = 0;
+let remoteVideoId = 0;
 const remoteVideoContainer = document.getElementById('streams__container');
 let _sendingNewStream = false;
 
-export function setLocalStream(stream, gameId) {
+export function setLocalStream(stream) {
     try {
-        document.getElementById(`remoteVideo-${gameId}`);
-        let video = document.getElementById(`remoteVideo-${gameId}`);
+        document.getElementById(`remoteVideo-${localVideoId}`);
+        let video = document.getElementById(`remoteVideo-${localVideoId}`);
         if (video === null) {
-            let player = `<div class="video__container video-player" id="user-container-${gameId}"><video class="video-player" id="remoteVideo-${gameId}" autoplay playsinline></video></div>`;
+            let player = `<div class="video__container video-player" id="user-container-${localVideoId}"><video class="video-player" id="remoteVideo-${localVideoId}" autoplay playsinline></video></div>`;
             remoteVideoContainer.insertAdjacentHTML("beforeend", player);
-            video = document.getElementById(`remoteVideo-${gameId}`);
+            video = document.getElementById(`remoteVideo-${localVideoId}`);
             video.style.width = '200px';
             video.style.height = '200px';
             video.style.borderRadius = '50%';
@@ -26,7 +27,6 @@ export function setLocalStream(stream, gameId) {
             video.srcObject = stream;
         }
         console.log("setLocalStream");
-        localVideoId = gameId;
     }
     catch (err) {
         console.error(err);
@@ -51,6 +51,7 @@ export async function setRemoteStream(gameId, stream) {
         else {
             video.srcObject = stream;
         }
+        remoteVideoId = gameId;
         console.log(`set remote stream for gameId ${gameId} and streamId ${stream.id}`);
     }
     catch (err) {
@@ -83,6 +84,10 @@ export function hideBlockRemoteVideo() {
     //localVideo.classList.remove('smallFrame');
 }
 
+
+export async function remoteVideoIsExist() {
+    return remoteVideoId !== 0;
+}
 
 let displayFrame = document.getElementById('stream__box');
 let videoFrames = document.getElementsByClassName('video__container');
