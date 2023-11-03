@@ -1,6 +1,5 @@
 ﻿let localVideoId = null;
 const remoteVideoContainer = document.getElementById('streams__container');
-let _sendingNewStream = false;
 
 export function setLocalStream(stream, gameId) {
     try {
@@ -33,30 +32,26 @@ export function setLocalStream(stream, gameId) {
     }
 }
 
-export async function setRemoteStream(gameId, stream) {
-    while (_sendingNewStream) {
-        await delay(500);
-    }
-    _sendingNewStream = true;
-
-    try {
-        document.getElementById(`remoteVideo-${gameId}`);
-        let video = document.getElementById(`remoteVideo-${gameId}`);
-        if (video === null) {
-            let videoBlock = `<div class="video__container video-player" id="user-container-${gameId}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; display: flex; justify-content: center; align-items: center; border: 2px solid #b366f9; cursor: pointer; overflow: hidden;"><video class="video-player" id="remoteVideo-${gameId}" autoplay playsinline></video></div>`;
-            remoteVideoContainer.insertAdjacentHTML("beforeend", videoBlock);
-            video = document.getElementById(`remoteVideo-${gameId}`);
-            video.srcObject = stream;
+export function setRemoteStream(stream) {
+    for (let i = 0; i < stream.length; i++) {
+        try {
+            document.getElementById(`remoteVideo-${stream[i].id}`);
+            let video = document.getElementById(`remoteVideo-${stream[i].id}`);
+            if (video === null) {
+                let videoBlock = `<div class="video__container video-player" id="user-container-${stream[i].id}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; display: flex; justify-content: center; align-items: center; border: 2px solid #b366f9; cursor: pointer; overflow: hidden;"><video class="video-player" id="remoteVideo-${stream[i].id}" autoplay playsinline></video></div>`;
+                remoteVideoContainer.insertAdjacentHTML("beforeend", videoBlock);
+                video = document.getElementById(`remoteVideo-${stream[i].id}`);
+                video.srcObject = stream[i];
+            }
+            else {
+                video.srcObject = stream[i];
+            }
+            console.log(`setRemoteStream for ${stream[i].id}`);
         }
-        else {
-            video.srcObject = stream;
+        catch (err) {
+            console.error(err);
         }
-        console.log(`set remote stream for gameId ${gameId} and streamId ${stream.id}`);
     }
-    catch (err) {
-        console.error(err);
-    }
-    _sendingNewStream = false;
 }
 
 export function stopLocalStream() {

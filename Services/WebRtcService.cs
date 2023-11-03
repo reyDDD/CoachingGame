@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.JSInterop;
-using System.Text.Json.Serialization;
 using TamboliyaLibrary.Models;
 
 namespace Tamboliya.Services
@@ -13,25 +12,24 @@ namespace Tamboliya.Services
         private HubConnection? _hub;
         private string? _signalingChannel;
         private readonly IConfiguration _config;
-        private string _gameId = null!;
 
 
-        public event EventHandler<(string gameId, IJSObjectReference e)>? OnRemoteStreamAcquired;
+        public event EventHandler<IJSObjectReference>? OnRemoteStreamAcquired;
 
         public WebRtcService(IJSRuntime js, IConfiguration config)
         {
             _js = js;
             _config = config;
+
         }
 
-        public async Task Join(string signalingChannel, int gameId)
+        public async Task Join(string signalingChannel)
         {
             if (_signalingChannel != null)
                 return;
 
-            _gameId = gameId.ToString();
             _signalingChannel = signalingChannel;
-            Console.WriteLine("parent game which we trying to connect is " + _signalingChannel);
+            Console.WriteLine("_signalingChannel is" + _signalingChannel);
 
             var hub = await GetHub();
             await hub.SendAsync("join", _signalingChannel);
@@ -52,15 +50,15 @@ namespace Tamboliya.Services
             if (_jsModule == null)
                 throw new InvalidOperationException();
 
-            var offerDescription = await _jsModule.InvokeAsync<string>("callAction", _gameId);
-            await SendOffer(offerDescription, _gameId!);
+            var offerDescription = await _jsModule.InvokeAsync<string>("callAction");
+            await SendOffer(offerDescription);
         }
 
         public async Task Hangup()
         {
             if (_jsModule == null)
                 throw new InvalidOperationException();
-            await _jsModule.InvokeVoidAsync("hangupAction", _gameId);
+            await _jsModule.InvokeVoidAsync("hangupAction");
             _signalingChannel = null;
         }
 
@@ -96,7 +94,7 @@ namespace Tamboliya.Services
                 .WithUrl(chatHubUrl)
                 .Build();
 
-            hub.On<string, string, string, string>("SignalWebRtc", async (signalingChannel, type, payload, gameId) =>
+            hub.On<string, string, string>("SignalWebRtc", async (signalingChannel, type, payload) =>
             {
                 if (_jsModule == null) throw new InvalidOperationException();
 
@@ -105,14 +103,13 @@ namespace Tamboliya.Services
                 switch (type)
                 {
                     case "offer":
-                        await _jsModule.InvokeVoidAsync("processOffer", payload, gameId);
+                        await _jsModule.InvokeVoidAsync("processOffer", payload);
                         break;
                     case "answer":
-                        await _jsModule.InvokeVoidAsync("processAnswer", payload, gameId);
+                        await _jsModule.InvokeVoidAsync("processAnswer", payload);
                         break;
                     case "candidate":
-                        Console.WriteLine($"start metod processCandidate on server for game Id {_gameId}");
-                        await _jsModule.InvokeVoidAsync("processCandidate", payload, gameId);
+                        await _jsModule.InvokeVoidAsync("processCandidate", payload);
                         break;
                 }
             });
@@ -123,49 +120,41 @@ namespace Tamboliya.Services
         }
 
         [JSInvokable]
-        public async Task SendOffer(string offer, string gameId)
+        public async Task SendOffer(string offer)
         {
             var hub = await GetHub();
-            await hub.SendAsync("SignalWebRtc", _signalingChannel, "offer", offer, gameId);
+            await hub.SendAsync("SignalWebRtc", _signalingChannel, "offer", offer);
         }
 
         [JSInvokable]
-        public async Task SendAnswer(string answer, string gameId)
+        public async Task SendAnswer(string answer)
         {
             var hub = await GetHub();
-            await hub.SendAsync("SignalWebRtc", _signalingChannel, "answer", answer, gameId);
+            await hub.SendAsync("SignalWebRtc", _signalingChannel, "answer", answer);
         }
 
         [JSInvokable]
-        public async Task SendCandidate(string gameId, string candidate)
+        public async Task SendCandidate(string candidate)
         {
             var hub = await GetHub();
-            await hub.SendAsync("SignalWebRtc", _signalingChannel, "candidate", candidate, gameId);
+            await hub.SendAsync("SignalWebRtc", _signalingChannel, "candidate", candidate);
         }
 
         [JSInvokable]
         public async Task SetRemoteStream()
         {
             if (_jsModule == null) throw new InvalidOperationException();
-            await _jsModule.InvokeAsync<At>("getRemoteStreams");
+            var stream = await _jsModule.InvokeAsync<IJSObjectReference>("getRemoteStream");
+            OnRemoteStreamAcquired?.Invoke(this, stream);
         }
 
-        [JSInvokable]
-        public async Task RemoteStreamCallBack(At removeStream)
-        {
-            OnRemoteStreamAcquired?.Invoke(this, (removeStream.B, removeStream.A));
-            removeStream.A = null!;
-            removeStream.B = String.Empty;
-            removeStream = null!;
-        }
 
-        public class At
-        {
-            [JsonPropertyName("a")]
-            public IJSObjectReference A { get; set; }
-            [JsonPropertyName("b")]
-            public string B { get; set; }
-        }
-
+        //[JSInvokable]
+        //public async Task HideBlockRemoteVideo()
+        //{
+        //    var _module = await _js.InvokeAsync<IJSObjectReference>(
+        //       "import", "./Shared/Rtc.razor.js");
+        //    await _module.InvokeVoidAsync("hideBlockRemoteVideo");
+        //}
     }
 }
