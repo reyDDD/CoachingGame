@@ -110,13 +110,13 @@
 
         RtcService.OnRemoteStreamAcquired += RtcOnRemoteStreamAcquired;
         await RtcService.Join(ParentGameId, GameId);
-        /* var stream =  */await RtcService.StartLocalStream(GameId.ToString());
-        // await _module.InvokeVoidAsync("setLocalStream", stream, GameId);
+        var stream = await RtcService.StartLocalStream(GameId.ToString());
+        await _module.InvokeVoidAsync("setLocalStream", stream, GameId);
         _callDisabled = true;
     }
 
 
-    private async void RtcOnRemoteStreamAcquired(object? obj, (string gameId,
+    private async void RtcOnRemoteStreamAcquired(object? obj, (string gameId, 
         IJSObjectReference stream) e)
     {
         if (_module == null)
@@ -133,14 +133,7 @@
 
     private async Task CallAction()
     {
-        var stream = await RtcService.Call();
-
-        if (_module == null)
-            throw new InvalidOperationException();
-        else
-        {
-            await _module.InvokeVoidAsync("setLocalStream", stream, GameId);
-        }
+        await RtcService.Call();
     }
 
     private async Task HangupAction() //функция прекращения звонка
