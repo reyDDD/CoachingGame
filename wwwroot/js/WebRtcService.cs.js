@@ -120,6 +120,9 @@ function createPeerConnection(gameId) {
     return peerConnection;
 }
 
+export async function getLocalStream() {
+    return localStream;
+}
 
 // first flow: This client initiates call. Sequence is:
 // Create offer - send to peer - receive answer - set stream

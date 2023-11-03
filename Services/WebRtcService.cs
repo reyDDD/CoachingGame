@@ -40,20 +40,22 @@ namespace Tamboliya.Services
             await _jsModule.InvokeVoidAsync("initialize", _jsThis);
         }
 
-        public async Task<IJSObjectReference> StartLocalStream(string gameId)
+        public async Task StartLocalStream(string gameId)
         {
             if (_jsModule == null) throw new InvalidOperationException();
-            var stream = await _jsModule.InvokeAsync<IJSObjectReference>("startLocalStream", gameId);
-            return stream;
+            /*var stream = */await _jsModule.InvokeAsync<IJSObjectReference>("startLocalStream", gameId);
+            //return stream;
         }
 
-        public async Task Call()
+        public async Task<IJSObjectReference> Call()
         {
             if (_jsModule == null)
                 throw new InvalidOperationException();
 
             var offerDescription = await _jsModule.InvokeAsync<string>("callAction", _gameId);
             await SendOffer(offerDescription, _gameId!);
+            var stream = await _jsModule.InvokeAsync<IJSObjectReference>("getLocalStream");
+            return stream;
         }
 
         public async Task Hangup()
