@@ -31,8 +31,8 @@ const servers = {
 let dotNet;
 let localGameId = 0;
 let localStream = null;
-let remoteStream = [];
-let peerConnection;
+let remoteStreams = new Map();
+let peerConnections = new Map();
 
 let isOffering = false;
 let isOffered = false;
@@ -73,7 +73,7 @@ export async function toggleMic() {
 }
 
 export async function toggleCall() {
-    if (peerConnection != null) {
+    if (peerConnections != null) {
         document.getElementById('leave-btn').style.backgroundColor = 'rgb(255, 80, 80)';
     }
     else {
@@ -90,21 +90,23 @@ export async function startLocalStream(gameId) {
     return localStream;
 }
 
-function createPeerConnection() {
-    if (peerConnection != null)
-        return;
+function createPeerConnection(gameId) {
+    if (peerConnections.has(gameId)) {
+        console.log(`Local stream to peerConnection for game Id ${gameId} was created. Using exist`);
+        return peerConnections.get(gameId);
+    }
 
     // Create peer connections and add behavior.
-    console.log("peerConnection createOffer start.");
-    peerConnection = "hello";
-    peerConnection = new RTCPeerConnection(servers);
-    console.log("Created local peer connection object peerConnection.");
-   
+    console.log(`start create peerConnections for id ${gameId}.`);
 
-    peerConnection.addEventListener("icecandidate", handleConnection);
-    peerConnection.addEventListener("iceconnectionstatechange", handleConnectionChange); //срабатывает
+    let peerConnection = new RTCPeerConnection(servers);
+    console.log(`Created local peer connection object peerConnection for game id ${gameId}.`);
+
+
+    peerConnection.addEventListener("icecandidate", (event) => { handleConnection(event, gameId) });
+    peerConnection.addEventListener("iceconnectionstatechange", (event) => { handleConnectionChange(event, gameId) }); //срабатывает
     //когда идут попытки установить соединение между двумя обменявшимися любезностями пирами
-    peerConnection.addEventListener("addstream", gotRemoteMediaStream);
+    peerConnection.addEventListener("addstream", (event) => { gotRemoteMediaStream(event, gameId) }); // https://www.mediaevent.de/javascript/add-event-listener-arguments.html
 
     //peerConnection.ontrack = (event) => gotRemoteMediaStream(event); //Обрабатывает удаленный успех
     // MediaStream, передавая поток компоненту blazor.
@@ -113,77 +115,85 @@ function createPeerConnection() {
 
     // Add local stream to connection and create offer to connect.
     peerConnection.addStream(localStream);
-    console.log("Added local stream to peerConnection.");
-    /*isOffered = true;*/
+    peerConnections.set(gameId, peerConnection);
+    console.log(`Added local stream to peerConnection for game Id ${gameId}.`);
+    return peerConnection;
 }
 
 
 // first flow: This client initiates call. Sequence is:
 // Create offer - send to peer - receive answer - set stream
 // Handles call button action: creates peer connection.
-export async function callAction() {
+export async function callAction(gameId) {
     //if (isOffered)
     //    return Promise.resolve();
 
     /*isOffering = true;*/
-    console.log("Starting call.");
-    createPeerConnection();
-    let peerConnection = peerConnections.get(gameId);
+    console.log(`Starting call for game Id ${gameId}.`);
+    let peerConnection = createPeerConnection(gameId);
     let offerDescription = await peerConnection.createOffer(offerOptions);
-    console.log(`Offer from peerConnection:\n${offerDescription.sdp}`);
-    console.log("peerConnection setLocalDescription start.");
+    console.log(`Offer with game ID ${gameId} from peerConnections:\n${offerDescription.sdp}`);
+    console.log(`peerConnections setLocalDescription start for game ID ${gameId}.`);
     await peerConnection.setLocalDescription(offerDescription); // отримуємо локальний опис і 
     // надсилаємо його за допомогою каналу сигналізації віддаленому одноранговому вузлу.
-    console.log("peerConnection.setLocalDescription(offerDescription) success");
-    console.log("peerConnections.setLocalDescription(offerDescription) success");
+
+    console.log(`peerConnections.setLocalDescription(offerDescription) success for game ID ${gameId}.`);
     return JSON.stringify(offerDescription);
 }
 
+
+// In this flow, the user gets an offer from signaling from a peer.
+// In this case, we setRemoteDescription similar to when we got the answer
+// in the flow above. srd triggers addStream.
+export async function processOffer(descriptionText, gameId) {
+    console.log(`processOffer for game ID ${gameId}`);
+    /*  if (isOffering) return;*/
+
+    //createPeerConnection();
+    let description = JSON.parse(descriptionText);
+    console.log(`peerConnections setRemoteDescription start for game ID ${gameId}`);
+
+    let peerConn = getPeerConnection(gameId);
+
+    await peerConn.setRemoteDescription(description);
+
+    console.log(`peerConnections createAnswer start  for game ID ${gameId}`);
+    let answer = await peerConn.createAnswer();
+    //после строки выше у отправителя запроса срабатывает обработчик события peerConnections.ontrack = (event) => gotRemoteMediaStream(event);
+    console.log(`Answer  for game ID ${gameId}: ${answer.sdp}.`);
+    console.log(`peerConnections setLocalDescription start for game ID ${gameId}`);
+    await peerConn.setLocalDescription(answer);
+
+    peerConnections.set(gameId, peerConn);
+
+    console.log(`dotNet SendAnswer for game ID ${gameId}`);
+    dotNet.invokeMethodAsync("SendAnswer", JSON.stringify(answer), gameId); //TODO: а так работать будет?
+}
+
+
 // Signaling calls this once an answer has arrived from other peer. Once
 // setRemoteDescription is called, the addStream event trigger on the connection.
-export async function processAnswer(descriptionText) {
+export async function processAnswer(descriptionText, gameId) {
     let description = JSON.parse(descriptionText);
-    console.log("processAnswer: peerConnection setRemoteDescription start.");
-    await peerConnection.setRemoteDescription(description);
-    console.log("peerConnection.setRemoteDescription(description) success");
-}
+    console.log(`processAnswer: peerConnections setRemoteDescription start for game ID ${gameId}.`);
+
+    let peerConnection = getPeerConnection(gameId);
 
     await peerConnection.setRemoteDescription(description);
     peerConnections.set(gameId, peerConnection);
     console.log(`peerConnections.setRemoteDescription(description) success for game ID ${gameId}`);
 }
 
-// In this flow, the user gets an offer from signaling from a peer.
-// In this case, we setRemoteDescription similar to when we got the answer
-// in the flow above. srd triggers addStream.
-export async function processOffer(descriptionText) {
-    console.log("peerConnection setRemoteDescription start.");
-    await peerConnection.setRemoteDescription(description);
-
-    console.log("peerConnection createAnswer start.");
-    let answer = await peerConnection.createAnswer();
-    //после строки выше у отправителя запроса срабатывает обработчик события peerConnection.ontrack = (event) => gotRemoteMediaStream(event);
-    console.log(`Answer: ${answer.sdp}.`);
-    console.log("peerConnection setLocalDescription start.");
-    await peerConnection.setLocalDescription(answer);
-    console.log("peerConnections createAnswer start.");
-    console.log("dotNet SendAnswer.");
-    dotNet.invokeMethodAsync("SendAnswer", JSON.stringify(answer));
-    await peerConnection.setLocalDescription(answer);
-
-export async function processCandidate(candidateText) {
-
-    console.log("IceCandidate is " + candidate);
-    console.log("processCandidate: peerConnection addIceCandidate start.");
 export async function processCandidate(candidateText, gameId) {
     let candidate = JSON.parse(candidateText);
     console.log(`IceCandidate for game ID ${gameId} is ${candidate}`);
-        console.log("addIceCandidate added.");
+    console.log(`processCandidate: peerConnections addIceCandidate start for game ID ${gameId} and localGameId ${localGameId}`);
+
     let peerConnection = getPeerConnection(gameId);
 
     try {
         await peerConnection.addIceCandidate(candidate);
-        console.log(`addIceCandidate added for game ID ${gameId}`);
+        console.log(`addIceCandidate added for game ID ${gameId} and localGameId ${localGameId}`);
         peerConnections.set(gameId, peerConnection);
     } catch (err) {
         console.error(err);
@@ -191,7 +201,10 @@ export async function processCandidate(candidateText, gameId) {
 }
 
 // Обрабатывает действие завершения: завершает вызов, закрывает соединения и сбрасывает одноранговые узлы.
-export function hangupAction() {
+export function hangupAction(gameId) {
+
+    let peerConnection = getPeerConnection(gameId);
+
     if (peerConnection) {
         console.log("Start ending call.");
         peerConnection.ontrack = null;
@@ -204,50 +217,77 @@ export function hangupAction() {
         peerConnection.onnegotiationneeded = null;
         peerConnection.close();
         peerConnection = null;
-        console.log("Ending call.");
+        peerConnections = null;
+        console.log(`Ending call for game ID ${gameId}`);
     }
 }
 
 
 // Handles remote MediaStream success by handing the stream to the blazor component.
-async function gotRemoteMediaStream(event) {
+async function gotRemoteMediaStream(event, gameId) {
 
     const mediaStream = event.stream;
-    console.log(mediaStream);
+    console.log(`${mediaStream} for game ID ${gameId}`);
+    remoteStreams.set(gameId, mediaStream);
 
-export function getRemoteStream() {
-    return remoteStream;
+    await dotNet.invokeMethodAsync("SetRemoteStream");
+    console.log("Remote peer connection received remote stream.");
+}
+
+export async function getRemoteStreams() {
+    let streamsIdForDelete = new Array();
+
+    for (const [key, value] of remoteStreams) {
         var data = {
             a: DotNet.createJSObjectReference(value),
             b: key
         }
         await dotNet.invokeMethodAsync("RemoteStreamCallBack", data);
+        streamsIdForDelete.push(key);
+    }
+
+    for (let streamId of streamsIdForDelete) {
+        remoteStreams.delete(streamId);
     }
 }
 
 // Sends candidates to peer through signaling.
-async function handleConnection(event) {
+async function handleConnection(event, gameId) {
     const iceCandidate = event.candidate;
 
     if (iceCandidate) {
-        await dotNet.invokeMethodAsync("SendCandidate", JSON.stringify(iceCandidate));
+        await dotNet.invokeMethodAsync("SendCandidate", gameId, JSON.stringify(iceCandidate));
 
-        console.log(`peerConnection ICE candidate:${iceCandidate.candidate}.`);
-    console.log("ICE state change event: ", event);
-    console.log(`peerConnection ICE state: ${peerConnectionForLogging.iceConnectionState}.`);
+        console.log(`peerConnections ICE candidate:${iceCandidate.candidate} for game ID ${gameId}`);
+    }
+}
 
 // Logs changes to the connection state.
-function handleConnectionChange(event) {
+function handleConnectionChange(event, gameId) {
     const peerConnectionForLogging = event.target;
-    }
-    else {
-        peerConnection = peerConnections.get(gameId);
+    console.log(`peerConnections ICE state: ${peerConnectionForLogging.iceConnectionState} for game with id ${gameId}.`);
+
+    /* hideBlockRemoteVideo();*/
+}
+
+
+function getPeerConnection(gameId) {
+    let peerConnection = "hello";
+    try {
+        if (peerConnections.get(gameId) === undefined) {
+            peerConnection = createPeerConnection(gameId);
+        }
+        else {
+            peerConnection = peerConnections.get(gameId);
+        }
+    } catch (err) {
+        console.error(err);
     }
     return peerConnection;
 }
 
 //export function hideBlockRemoteVideo() {
-//    if (peerConnection.iceConnectionState == 'disconnected') {
+//    if (peerConnections.iceConnectionState == 'disconnected') {
 //        console.log('hideBlockRemoteVideo');
 //        dotNet.invokeMethodAsync("HideBlockRemoteVideo");
 //    }
