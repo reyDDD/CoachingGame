@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.JSInterop;
+using System;
 using System.Text.Json.Serialization;
 using TamboliyaLibrary.Models;
 
@@ -17,6 +18,7 @@ namespace Tamboliya.Services
 
 
         public event EventHandler<(string gameId, IJSObjectReference e)>? OnRemoteStreamAcquired;
+        public event EventHandler<string> StopStreams;
 
         public WebRtcService(IJSRuntime js, IConfiguration config)
         {
@@ -43,8 +45,8 @@ namespace Tamboliya.Services
         public async Task<IJSObjectReference> StartLocalStream(string gameId)
         {
             if (_jsModule == null) throw new InvalidOperationException();
-            var stream = await _jsModule.InvokeAsync<IJSObjectReference>("startLocalStream", gameId);
-            return stream;
+            var answer = await _jsModule.InvokeAsync<At>("startLocalStream", gameId);
+            return answer.A;
         }
 
         public async Task Call()
@@ -62,6 +64,9 @@ namespace Tamboliya.Services
                 throw new InvalidOperationException();
             await _jsModule.InvokeVoidAsync("hangupAction", _gameId);
             _signalingChannel = null;
+
+            var hub = await GetHub();
+            await hub.SendAsync("Leave", _signalingChannel);
         }
 
         public async Task ToggleCamera()
@@ -95,6 +100,14 @@ namespace Tamboliya.Services
             var hub = new HubConnectionBuilder()
                 .WithUrl(chatHubUrl)
                 .Build();
+
+
+            hub.On<string>("Leave", async (signalingChannel) =>
+            {
+                StopStreams.Invoke(this, _gameId);
+                await Hangup();
+            });
+
 
             hub.On<string, string, string, string>("SignalWebRtc", async (signalingChannel, type, payload, gameId) =>
             {

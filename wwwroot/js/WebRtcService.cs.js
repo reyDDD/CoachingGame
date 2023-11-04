@@ -87,7 +87,11 @@ export async function startLocalStream(gameId) {
     localGameId = gameId;
     localStream = await navigator.mediaDevices.getUserMedia(mediaStreamConstraints);
     getPeerConnection(gameId);
-    return localStream;
+
+    return {
+        a: DotNet.createJSObjectReference(localStream),
+        b: gameId
+    };
 }
 
 function createPeerConnection(gameId) {
@@ -202,24 +206,17 @@ export async function processCandidate(candidateText, gameId) {
 
 // Обрабатывает действие завершения: завершает вызов, закрывает соединения и сбрасывает одноранговые узлы.
 export function hangupAction(gameId) {
+    if (localStream !== null) {
 
-    let peerConnection = getPeerConnection(gameId);
+        localStream.getTracks().forEach(track => track.stop());
 
-    if (peerConnection) {
-        console.log("Start ending call.");
-        peerConnection.ontrack = null;
-        peerConnection.onremovetrack = null;
-        peerConnection.onremovestream = null;
-        peerConnection.onicecandidate = null;
-        peerConnection.oniceconnectionstatechange = null;
-        peerConnection.onsignalingstatechange = null;
-        peerConnection.onicegatheringstatechange = null;
-        peerConnection.onnegotiationneeded = null;
-        peerConnection.close();
-        peerConnection = null;
-        peerConnections = null;
+        for (const [key, value] of remoteStreams) {
+            value.getTracks().forEach(track => track.stop());
+        }
         console.log(`Ending call for game ID ${gameId}`);
     }
+    localStream = null;
+    remoteStreams = new Map();
 }
 
 
@@ -246,9 +243,9 @@ export async function getRemoteStreams() {
         streamsIdForDelete.push(key);
     }
 
-    for (let streamId of streamsIdForDelete) {
-        remoteStreams.delete(streamId);
-    }
+    //for (let streamId of streamsIdForDelete) {
+    //    remoteStreams.delete(streamId);
+    //}
 }
 
 // Sends candidates to peer through signaling.

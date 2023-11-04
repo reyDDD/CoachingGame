@@ -110,10 +110,10 @@
             throw new InvalidOperationException();
 
         RtcService.OnRemoteStreamAcquired += RtcOnRemoteStreamAcquired;
+        RtcService.StopStreams += StopStreams;
         await RtcService.Join(ParentGameId, GameId);
         var stream = await RtcService.StartLocalStream(GameId.ToString());
         _localStream = stream;
-        _callDisabled = true;
     }
 
 
@@ -126,10 +126,6 @@
         await _module.InvokeVoidAsync("setRemoteStream", e.gameId, e.stream);
         await _module.InvokeVoidAsync("addEventListenerForVideoFrames");
         StateHasChanged();
-
-        e.stream = null!;
-        e.gameId = null!;
-        e = default;
     }
 
     private async Task CallAction()
@@ -139,15 +135,19 @@
 
     private async Task HangupAction() //функция прекращения звонка
     {
+        await RtcService.Hangup();
+        StopStreams(null!, GameId.ToString());
+    }
+
+
+    private async void StopStreams(object? obj, string gameId)
+    {
         //TODO: по клике на кнопку камера и микрофон не отключаются!!!
         if (_module == null)
             throw new InvalidOperationException();
-
         await _module.InvokeVoidAsync("stopRemoteStream");
         await _module.InvokeVoidAsync("stopLocalStream");
         await _module.InvokeVoidAsync("hideBlockRemoteVideo");
-        await RtcService.Hangup();
-        _callDisabled = true;
     }
 
     private async Task ToggleCamera()
@@ -174,9 +174,13 @@
             {
                 await CallAction();
             }
+            _callDisabled = false;
         }
         else
+        {
             await HangupAction();
+            _callDisabled = true;
+        }
 
         await RtcService.ToggleCall();
     }

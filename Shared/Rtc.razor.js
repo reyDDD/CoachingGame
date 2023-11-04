@@ -61,15 +61,18 @@ export async function setRemoteStream(gameId, stream) {
 }
 
 export function stopLocalStream() {
-    //if (localVideo.srcObject) {
-    //    localVideo.srcObject.getTracks().forEach((track) => track.stop());
-    //    console.log("stop local stream");
-    //}
+
+    let localVideo = document.getElementById(`remoteVideo-${localVideoId}`);
+    if (localVideo.srcObject) {
+        localVideo.srcObject.getTracks().forEach((track) => track.stop());
+        console.log("stop local stream");
+    }
 }
 
 export function stopRemoteStream() {
-    if (remoteVideoContainer.srcObject) {
-        remoteVideoContainer.srcObject.getTracks().forEach((track) => track.stop());
+    let remoteVideo = document.getElementById(`remoteVideo-${remoteVideoId}`);
+    if (remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach((track) => track.stop());
         console.log("stop remote streams");
     }
 }
@@ -80,8 +83,9 @@ export function showBlockRemoteVideo() {
 }
 
 export function hideBlockRemoteVideo() {
-    //remoteVideoContainer.style.display = 'none';
-    //localVideo.classList.remove('smallFrame');
+
+    document.getElementById(`user-container-${localVideoId}`).remove();
+    document.getElementById(`user-container-${remoteVideoId}`).remove();
 }
 
 
