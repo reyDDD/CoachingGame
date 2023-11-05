@@ -77,15 +77,15 @@ export function stopRemoteStream() {
     }
 }
 
-export function showBlockRemoteVideo() {
-    //remoteVideoContainer.style.display = 'block';
-    //localVideo.classList.add('smallFrame');
-}
-
 export function hideBlockRemoteVideo() {
-
-    document.getElementById(`user-container-${localVideoId}`).remove();
-    document.getElementById(`user-container-${remoteVideoId}`).remove();
+    let localVideoContainer = document.getElementById(`user-container-${localVideoId}`);
+    if (localVideoContainer) {
+        localVideoContainer.remove();
+    }
+    let remoteVideoContainer = document.getElementById(`user-container-${remoteVideoId}`);
+    if (remoteVideoContainer) {
+        remoteVideoContainer.remove();
+    }
 }
 
 

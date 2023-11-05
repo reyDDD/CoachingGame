@@ -63,10 +63,9 @@ namespace Tamboliya.Services
             if (_jsModule == null)
                 throw new InvalidOperationException();
             await _jsModule.InvokeVoidAsync("hangupAction", _gameId);
-            _signalingChannel = null;
-
+            
             var hub = await GetHub();
-            await hub.SendAsync("Leave", _signalingChannel);
+            await hub.SendAsync("SignalWebRtc", _signalingChannel, "leave", null, _gameId);
         }
 
         public async Task ToggleCamera()
@@ -102,13 +101,6 @@ namespace Tamboliya.Services
                 .Build();
 
 
-            hub.On<string>("Leave", async (signalingChannel) =>
-            {
-                StopStreams.Invoke(this, _gameId);
-                await Hangup();
-            });
-
-
             hub.On<string, string, string, string>("SignalWebRtc", async (signalingChannel, type, payload, gameId) =>
             {
                 if (_jsModule == null) throw new InvalidOperationException();
@@ -124,8 +116,10 @@ namespace Tamboliya.Services
                         await _jsModule.InvokeVoidAsync("processAnswer", payload, gameId);
                         break;
                     case "candidate":
-                        Console.WriteLine($"start metod processCandidate on server for game Id {_gameId}");
                         await _jsModule.InvokeVoidAsync("processCandidate", payload, gameId);
+                        break;
+                    case "leave":
+                        StopStreams.Invoke(this, _gameId);
                         break;
                 }
             });

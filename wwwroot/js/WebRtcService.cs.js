@@ -30,7 +30,7 @@ const servers = {
 
 let dotNet;
 let localGameId = 0;
-let localStream = null;
+let localStream = new Map();
 let remoteStreams = new Map();
 let peerConnections = new Map();
 
@@ -43,8 +43,8 @@ export function initialize(dotNetRef) {
 
 
 export async function toggleCamera() {
-    if (localStream != null) {
-        let videoTrack = localStream.getTracks().find(track => track.kind === 'video');
+    if (localStream.size > 0) {
+        let videoTrack = localStream.get(localGameId).getTracks().find(track => track.kind === 'video');
 
         if (videoTrack.enabled) {
             videoTrack.enabled = false;
@@ -58,8 +58,8 @@ export async function toggleCamera() {
 }
 
 export async function toggleMic() {
-    if (localStream != null) {
-        let audioTrack = localStream.getTracks().find(track => track.kind === 'audio');
+    if (localStream.size > 0) {
+        let audioTrack = localStream.get(localGameId).getTracks().find(track => track.kind === 'audio');
 
         if (audioTrack.enabled) {
             audioTrack.enabled = false;
@@ -73,7 +73,7 @@ export async function toggleMic() {
 }
 
 export async function toggleCall() {
-    if (peerConnections != null) {
+    if (peerConnections.size > 0) {
         document.getElementById('leave-btn').style.backgroundColor = 'rgb(255, 80, 80)';
     }
     else {
@@ -85,12 +85,13 @@ export async function toggleCall() {
 export async function startLocalStream(gameId) {
     console.log("Requesting local stream.");
     localGameId = gameId;
-    localStream = await navigator.mediaDevices.getUserMedia(mediaStreamConstraints);
+    let stream = await navigator.mediaDevices.getUserMedia(mediaStreamConstraints);
+    localStream.set(localGameId, stream);
     getPeerConnection(gameId);
 
     return {
-        a: DotNet.createJSObjectReference(localStream),
-        b: gameId
+        a: DotNet.createJSObjectReference(localStream.get(localGameId)),
+        b: localGameId
     };
 }
 
@@ -118,7 +119,7 @@ function createPeerConnection(gameId) {
     // когда пользователь делает предложение и получает Ответ. Отправляет кандидатов на пиринг посредством сигнализации.
 
     // Add local stream to connection and create offer to connect.
-    peerConnection.addStream(localStream);
+    peerConnection.addStream(localStream.get(localGameId));
     peerConnections.set(gameId, peerConnection);
     console.log(`Added local stream to peerConnection for game Id ${gameId}.`);
     return peerConnection;
@@ -206,16 +207,16 @@ export async function processCandidate(candidateText, gameId) {
 
 // Обрабатывает действие завершения: завершает вызов, закрывает соединения и сбрасывает одноранговые узлы.
 export function hangupAction(gameId) {
-    if (localStream !== null) {
+    if (localStream.size > 0) {
 
-        localStream.getTracks().forEach(track => track.stop());
+        localStream.get(localGameId).getTracks().forEach(track => track.stop());
 
         for (const [key, value] of remoteStreams) {
             value.getTracks().forEach(track => track.stop());
         }
         console.log(`Ending call for game ID ${gameId}`);
     }
-    localStream = null;
+    localStream = new Map();
     remoteStreams = new Map();
 }
 
