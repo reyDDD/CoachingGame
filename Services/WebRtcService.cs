@@ -119,6 +119,7 @@ namespace Tamboliya.Services
                         await _jsModule.InvokeVoidAsync("processCandidate", payload, gameId);
                         break;
                     case "leave":
+                        await _jsModule.InvokeVoidAsync("hangupAction", gameId);
                         StopStreams.Invoke(this, _gameId);
                         break;
                 }

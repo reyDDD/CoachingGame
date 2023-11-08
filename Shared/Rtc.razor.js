@@ -21,6 +21,7 @@ export function setLocalStream(stream) {
             video.style.border = '2px solid #b366f9';
             video.style.cursor = 'pointer';
             video.style.overflow = 'hidden';
+            video.setAttribute('autoplay', true);
             video.srcObject = stream;
         }
         else {
@@ -63,15 +64,20 @@ export async function setRemoteStream(gameId, stream) {
 export function stopLocalStream() {
 
     let localVideo = document.getElementById(`remoteVideo-${localVideoId}`);
-    if (localVideo.srcObject) {
-        localVideo.srcObject.getTracks().forEach((track) => track.stop());
-        console.log("stop local stream");
+    try {
+        if (localVideo.srcObject) {
+            localVideo.srcObject.getTracks().forEach((track) => track.stop());
+            console.log("stop local stream");
+        }
+    }
+    catch (error) {
+        console.error(error);
     }
 }
 
 export function stopRemoteStream() {
     let remoteVideo = document.getElementById(`remoteVideo-${remoteVideoId}`);
-    if (remoteVideo.srcObject) {
+    if (remoteVideo && remoteVideo.srcObject) {
         remoteVideo.srcObject.getTracks().forEach((track) => track.stop());
         console.log("stop remote streams");
     }
@@ -85,6 +91,7 @@ export function hideBlockRemoteVideo() {
     let remoteVideoContainer = document.getElementById(`user-container-${remoteVideoId}`);
     if (remoteVideoContainer) {
         remoteVideoContainer.remove();
+        remoteVideoId = 0;
     }
 }
 

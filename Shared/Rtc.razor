@@ -148,6 +148,7 @@
         await _module.InvokeVoidAsync("stopRemoteStream");
         await _module.InvokeVoidAsync("stopLocalStream");
         await _module.InvokeVoidAsync("hideBlockRemoteVideo");
+        _callDisabled = true;
     }
 
     private async Task ToggleCamera()

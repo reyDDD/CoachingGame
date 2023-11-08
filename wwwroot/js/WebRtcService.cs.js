@@ -4,8 +4,9 @@ const mediaStreamConstraints = {
     video: {
         //width: { min: 640, ideal: 1920, max: 1920 },
         //height: { min: 480, ideal: 1080, max: 1080 }
-        width: { min: 320, ideal: 320, max: 320 },
-        height: { min: 240, ideal: 240, max: 240 }
+        width: { min: 320, ideal: 320, max: 1920 },
+        height: { min: 240, ideal: 240, max: 1080 },
+        facingMode: "user"
     },
     //audio: true
     audio: false
@@ -84,8 +85,17 @@ export async function toggleCall() {
 
 export async function startLocalStream(gameId) {
     console.log("Requesting local stream.");
-    localGameId = gameId;
-    let stream = await navigator.mediaDevices.getUserMedia(mediaStreamConstraints);
+    if (localGameId === 0) {
+        localGameId = gameId;
+    }
+    
+    //instruction https://developer.mozilla.org/ru/docs/Web/API/MediaDevices/getUserMedia
+    let stream;
+    try {
+       stream = await navigator.mediaDevices.getUserMedia(mediaStreamConstraints);
+    } catch (error) {
+        console.error(error);
+    } 
     localStream.set(localGameId, stream);
     getPeerConnection(gameId);
 
@@ -119,7 +129,11 @@ function createPeerConnection(gameId) {
     // когда пользователь делает предложение и получает Ответ. Отправляет кандидатов на пиринг посредством сигнализации.
 
     // Add local stream to connection and create offer to connect.
+    if (localStream.size === 0) {
+        startLocalStream(gameId);
+    }
     peerConnection.addStream(localStream.get(localGameId));
+
     peerConnections.set(gameId, peerConnection);
     console.log(`Added local stream to peerConnection for game Id ${gameId}.`);
     return peerConnection;
@@ -216,8 +230,9 @@ export function hangupAction(gameId) {
         }
         console.log(`Ending call for game ID ${gameId}`);
     }
-    localStream = new Map();
+    /*localStream = new Map();*/
     remoteStreams = new Map();
+    peerConnections = new Map();
 }
 
 
@@ -233,20 +248,13 @@ async function gotRemoteMediaStream(event, gameId) {
 }
 
 export async function getRemoteStreams() {
-    let streamsIdForDelete = new Array();
-
     for (const [key, value] of remoteStreams) {
         var data = {
             a: DotNet.createJSObjectReference(value),
             b: key
         }
         await dotNet.invokeMethodAsync("RemoteStreamCallBack", data);
-        streamsIdForDelete.push(key);
     }
-
-    //for (let streamId of streamsIdForDelete) {
-    //    remoteStreams.delete(streamId);
-    //}
 }
 
 // Sends candidates to peer through signaling.
@@ -272,7 +280,7 @@ function handleConnectionChange(event, gameId) {
 function getPeerConnection(gameId) {
     let peerConnection = "hello";
     try {
-        if (peerConnections.get(gameId) === undefined) {
+        if (peerConnections.size > 0 || peerConnections.get(gameId) === undefined) {
             peerConnection = createPeerConnection(gameId);
         }
         else {
