@@ -19,6 +19,7 @@ namespace Tamboliya.Services
 
         public event EventHandler<(string gameId, IJSObjectReference e)>? OnRemoteStreamAcquired;
         public event EventHandler<string> StopStreams;
+        public event EventHandler<IJSObjectReference> StartUpdatedLocalStream;
 
         public WebRtcService(IJSRuntime js, IConfiguration config)
         {
@@ -49,12 +50,12 @@ namespace Tamboliya.Services
             return answer.A;
         }
 
-        public async Task Call()
+        public async Task Call(bool forReconnet)
         {
             if (_jsModule == null)
                 throw new InvalidOperationException();
 
-            var offerDescription = await _jsModule.InvokeAsync<string>("callAction", _gameId);
+            var offerDescription = await _jsModule.InvokeAsync<string>("callAction", _gameId, forReconnet);
             await SendOffer(offerDescription, _gameId!);
         }
 
@@ -175,5 +176,14 @@ namespace Tamboliya.Services
             public string B { get; set; }
         }
 
+        [JSInvokable]
+        public async Task GetNewLocalStreamAndShow()
+        {
+            if (_jsModule == null) throw new InvalidOperationException();
+            var stream = await _jsModule.InvokeAsync<At>("getLocalStream");
+            StartUpdatedLocalStream.Invoke(this, stream.A);
+            stream.A = null!;
+            stream.B = String.Empty;
+        }
     }
 }

@@ -88,14 +88,14 @@ export async function startLocalStream(gameId) {
     if (localGameId === 0) {
         localGameId = gameId;
     }
-    
+
     //instruction https://developer.mozilla.org/ru/docs/Web/API/MediaDevices/getUserMedia
     let stream;
     try {
-       stream = await navigator.mediaDevices.getUserMedia(mediaStreamConstraints);
+        stream = await navigator.mediaDevices.getUserMedia(mediaStreamConstraints);
     } catch (error) {
         console.error(error);
-    } 
+    }
     localStream.set(localGameId, stream);
     getPeerConnection(gameId);
 
@@ -105,8 +105,9 @@ export async function startLocalStream(gameId) {
     };
 }
 
+let forReconnetion = false;
 function createPeerConnection(gameId) {
-    if (peerConnections.has(gameId)) {
+    if (peerConnections.has(gameId) && !forReconnetion) {
         console.log(`Local stream to peerConnection for game Id ${gameId} was created. Using exist`);
         return peerConnections.get(gameId);
     }
@@ -143,10 +144,13 @@ function createPeerConnection(gameId) {
 // first flow: This client initiates call. Sequence is:
 // Create offer - send to peer - receive answer - set stream
 // Handles call button action: creates peer connection.
-export async function callAction(gameId) {
+export async function callAction(gameId, forReconnect) {
     //if (isOffered)
     //    return Promise.resolve();
 
+    if (forReconnect === true) {
+        forReconnetion = forReconnect;
+    }
     /*isOffering = true;*/
     console.log(`Starting call for game Id ${gameId}.`);
     let peerConnection = createPeerConnection(gameId);
@@ -167,6 +171,9 @@ export async function callAction(gameId) {
 export async function processOffer(descriptionText, gameId) {
     console.log(`processOffer for game ID ${gameId}`);
     /*  if (isOffering) return;*/
+
+    if (localStream.size === 0)
+        await startLocalStream(localGameId);
 
     //createPeerConnection();
     let description = JSON.parse(descriptionText);
@@ -248,6 +255,9 @@ async function gotRemoteMediaStream(event, gameId) {
 }
 
 export async function getRemoteStreams() {
+
+    await dotNet.invokeMethodAsync("GetNewLocalStreamAndShow");
+
     for (const [key, value] of remoteStreams) {
         var data = {
             a: DotNet.createJSObjectReference(value),
@@ -290,6 +300,16 @@ function getPeerConnection(gameId) {
         console.error(err);
     }
     return peerConnection;
+}
+
+
+export async function getLocalStream() {
+    let localStr = localStream.get(localGameId);
+
+    return {
+        a: DotNet.createJSObjectReference(localStr),
+        b: localGameId
+    };
 }
 
 //export function hideBlockRemoteVideo() {

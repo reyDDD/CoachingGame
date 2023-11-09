@@ -111,6 +111,7 @@
 
         RtcService.OnRemoteStreamAcquired += RtcOnRemoteStreamAcquired;
         RtcService.StopStreams += StopStreams;
+        RtcService.StartUpdatedLocalStream += SetUpdatedLocalStream;
         await RtcService.Join(ParentGameId, GameId);
         var stream = await RtcService.StartLocalStream(GameId.ToString());
         _localStream = stream;
@@ -125,13 +126,14 @@
 
         await _module.InvokeVoidAsync("setRemoteStream", e.gameId, e.stream);
         await _module.InvokeVoidAsync("addEventListenerForVideoFrames");
-        await _module.InvokeVoidAsync("setLocalStream", _localStream);
         StateHasChanged();
     }
 
+    bool reconnetion = false;
     private async Task CallAction()
     {
-        await RtcService.Call();
+        await RtcService.Call(reconnetion);
+        reconnetion = false;
     }
 
     private async Task HangupAction() //функция прекращения звонка
@@ -169,7 +171,7 @@
             if (_module == null)
                 throw new InvalidOperationException();
 
-            await _module.InvokeVoidAsync("setLocalStream", _localStream, GameId);
+            await _module.InvokeVoidAsync("setLocalStream", _localStream, GameId);//TODO: старый мертод, не работает
 
             var remoteVideoIsExist = await _module.InvokeAsync<bool>("remoteVideoIsExist");
             if (!remoteVideoIsExist)
@@ -185,6 +187,16 @@
         }
 
         await RtcService.ToggleCall();
+    }
+
+
+    private async void SetUpdatedLocalStream(object? obj, IJSObjectReference stream)
+    {
+        _localStream = stream;
+
+        if (_module == null)
+            throw new InvalidOperationException();
+        await _module.InvokeVoidAsync("setLocalStream", _localStream);
     }
 
     public async ValueTask DisposeAsync()
