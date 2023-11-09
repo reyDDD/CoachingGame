@@ -3,7 +3,7 @@ let remoteVideoId = 0;
 const remoteVideoContainer = document.getElementById('streams__container');
 let _sendingNewStream = false;
 
-export function setLocalStream(stream) {
+export async function setLocalStream(stream) {
     try {
         document.getElementById(`remoteVideo-${localVideoId}`);
         let video = document.getElementById(`remoteVideo-${localVideoId}`);
@@ -28,6 +28,10 @@ export function setLocalStream(stream) {
             video.srcObject = stream;
         }
         console.log("setLocalStream");
+        if (stream.active === true) {
+            return true;
+        }
+        else return false;
     }
     catch (err) {
         console.error(err);

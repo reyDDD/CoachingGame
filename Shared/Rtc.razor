@@ -171,7 +171,12 @@
             if (_module == null)
                 throw new InvalidOperationException();
 
-            await _module.InvokeVoidAsync("setLocalStream", _localStream, GameId);//TODO: старый мертод, не работает
+            var streamIsActive = await _module.InvokeAsync<bool>("setLocalStream", _localStream);
+            if (!streamIsActive)
+            {
+                var stream = await RtcService.StartLocalStream(GameId.ToString());
+                await _module.InvokeAsync<bool>("setLocalStream", _localStream);
+            }
 
             var remoteVideoIsExist = await _module.InvokeAsync<bool>("remoteVideoIsExist");
             if (!remoteVideoIsExist)
@@ -196,7 +201,7 @@
 
         if (_module == null)
             throw new InvalidOperationException();
-        await _module.InvokeVoidAsync("setLocalStream", _localStream);
+        await _module.InvokeAsync<bool>("setLocalStream", _localStream);
     }
 
     public async ValueTask DisposeAsync()

@@ -172,8 +172,13 @@ export async function processOffer(descriptionText, gameId) {
     console.log(`processOffer for game ID ${gameId}`);
     /*  if (isOffering) return;*/
 
-    if (localStream.size === 0)
+    if (localStream.size === 0) {
         await startLocalStream(localGameId);
+    }
+    else {
+        localStream = new Map();
+        await startLocalStream(localGameId);
+    } 
 
     //createPeerConnection();
     let description = JSON.parse(descriptionText);
